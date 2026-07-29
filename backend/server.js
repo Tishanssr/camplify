@@ -24,7 +24,7 @@ app.use(express.json())
 app.use(cookieParser())
 app.use(
   cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000', 'https://camplify-production.up.railway.app'],
+    origin: ['http://localhost:5173', 'http://localhost:3000', 'https://camplify-mauve.vercel.app'],
     credentials: true,
   })
 )
