@@ -1,0 +1,5 @@
+import { FaCheck } from 'react-icons/fa'
+import ScreenLayout from '../components/layout/ScreenLayout'
+
+const plans = [{ name: 'Free', price: '$0', items: ['Plan up to 5 camping trips', '6 participants per trip', 'Basic weather', 'Standard checklists', 'Explore camping locations'] }, { name: 'Pro', price: '$7.99', popular: true, items: ['Unlimited camping trips', 'Save weather alerts', 'Trip budget tracking', 'Shared group equipment planner', 'Early access to new features'] }]
+export default function Pricing() { return <ScreenLayout title="Camplify Pro"><div className="screen-page pricing-page"><div className="plan-grid">{plans.map((plan) => <article className={`plan-card ${plan.popular ? 'popular' : ''}`} key={plan.name}>{plan.popular && <b className="popular-label">Most Popular</b>}<small>{plan.name}</small><h2>{plan.price}<span>/month</span></h2><ul>{plan.items.map((item) => <li key={item}><FaCheck />{item}</li>)}</ul><button className={plan.popular ? 'upgrade' : ''}>{plan.popular ? 'Upgrade to Pro' : 'Current Plan'}</button></article>)}</div></div></ScreenLayout> }
