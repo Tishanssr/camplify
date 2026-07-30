@@ -42,7 +42,7 @@ export const register = async (req, res) => {
 
         // Send OTP verification email
         const mailOption = {
-            from: process.env.SENDER_EMAIL || 'modecc99@gmail.com',
+            from: process.env.SENDER_EMAIL,
             to: email,
             subject: 'Verify your Camplify Account',
             text: `Welcome to Camplify, ${name}!\n\nYour account verification OTP code is: ${otp}\n\nPlease enter this code to verify your account.`,
