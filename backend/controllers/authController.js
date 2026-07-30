@@ -62,7 +62,7 @@ export const register = async (req, res) => {
             await transporter.sendMail(mailOption);
             console.log(`[AUTH] Verification OTP ${otp} successfully emailed to ${email}`);
         } catch (mailError) {
-            console.error(`[AUTH] Failed to send email to ${email}:`, mailError.message);
+            console.error(`[AUTH] Failed to send email to ${email}:`, mailError);
         }
 
         return res.json({ success: true, message: 'Registration successful! Verification OTP sent to your email.' });
