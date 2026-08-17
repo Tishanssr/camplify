@@ -33,6 +33,9 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     const res = await authService.login(credentials)
     if (res.success) {
+      if (res.token) {
+        localStorage.setItem('token', res.token)
+      }
       await fetchUserData()
     }
     return res
@@ -41,6 +44,9 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     const res = await authService.register(userData)
     if (res.success) {
+      if (res.token) {
+        localStorage.setItem('token', res.token)
+      }
       await fetchUserData()
     }
     return res

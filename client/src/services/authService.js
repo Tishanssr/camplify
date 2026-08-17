@@ -35,6 +35,16 @@ export const authService = {
     return response.data
   },
 
+  async updateProfile(profileData) {
+    const response = await api.put('/user/profile', profileData)
+    return response.data
+  },
+
+  async checkUserEmail(email) {
+    const response = await api.get(`/user/check-email?email=${encodeURIComponent(email)}`)
+    return response.data
+  },
+
   async sendVerifyOtp() {
     const response = await api.post('/auth/send-verify-otp')
     return response.data

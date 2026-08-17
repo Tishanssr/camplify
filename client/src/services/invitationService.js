@@ -15,4 +15,15 @@ export const invitationService = {
     const response = await api.post(`/invitations/code/${code}`)
     return response.data
   },
+
+  async deleteInvitation(id) {
+    const response = await api.delete(`/invitations/${id}`)
+    return response.data
+  },
+
+  async clearRespondedInvitations() {
+    const response = await api.delete('/invitations/clear/responded')
+    return response.data
+  },
 }
+

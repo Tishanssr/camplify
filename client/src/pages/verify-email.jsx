@@ -1,14 +1,17 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { FaArrowRight } from 'react-icons/fa'
 import AuthInput from '../components/auth/AuthInput'
 import AuthLayout from '../components/auth/AuthLayout'
 import AuthMessage from '../components/auth/AuthMessage'
+import { useAuth } from '../context/AuthContext'
 import api from '../lib/api'
 
 export default function VerifyEmail() {
+  const location = useLocation()
+  const { fetchUserData } = useAuth()
   const [otp, setOtp] = useState('')
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState(location.state?.message || '')
   const [verified, setVerified] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -26,6 +29,7 @@ export default function VerifyEmail() {
       const { data } = await api.post('/auth/verify-account', { otp })
       if (!data.success) throw new Error(data.message)
       setVerified(true); setMessage(data.message)
+      if (fetchUserData) await fetchUserData()
     } catch (error) { setMessage(error.response?.data?.message || error.message) } finally { setLoading(false) }
   }
 

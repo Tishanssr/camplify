@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FaHeart, FaMapMarkerAlt, FaStar } from 'react-icons/fa'
+import { FaHeart, FaMapMarkerAlt } from 'react-icons/fa'
 import { Link, useParams } from 'react-router-dom'
 import ScreenLayout from '../components/layout/ScreenLayout'
 import { campsiteService } from '../services/campsiteService'
@@ -76,7 +76,7 @@ export default function CampsiteDetail() {
           <div>
             <p><FaMapMarkerAlt /> {site.location}</p>
             <h1>{site.name}</h1>
-            <span><FaStar /> {site.rating || 4.8} ({site.reviews || 0} reviews) · {site.distance || 'Nearby'}</span>
+            <span>{site.distance || 'Nearby'}</span>
           </div>
         </section>
 

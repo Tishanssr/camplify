@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import ScreenLayout from '../components/layout/ScreenLayout'
 import { tripService } from '../services/tripService'
 import { campsiteService } from '../services/campsiteService'
+import { authService } from '../services/authService'
 import { getTodayString } from '../utils/dateUtils'
 
 const steps = ['Trip Details', 'Location & Dates', 'Participants', 'Checklist & Gear']
@@ -17,6 +18,8 @@ export default function CreateTrip() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [inviteStatus, setInviteStatus] = useState('')
+  const [inviteError, setInviteError] = useState('')
+  const [inviteLoading, setInviteLoading] = useState(false)
   const [campsitesList, setCampsitesList] = useState([])
   const [isCustomLocation, setIsCustomLocation] = useState(false)
 
@@ -94,22 +97,37 @@ export default function CreateTrip() {
     }
   }
 
-  const handleAddParticipantEmail = (e) => {
+  const handleAddParticipantEmail = async (e) => {
     e.preventDefault()
     const email = form.invitedEmail.trim().toLowerCase()
     if (!email) return
 
     if (form.invitedParticipants.includes(email)) {
-      setInviteStatus(`"${email}" is already added to the invite list below.`)
+      setInviteError(`"${email}" is already added to the invite list below.`)
+      setInviteStatus('')
       return
     }
 
-    setForm(prev => ({
-      ...prev,
-      invitedParticipants: [...prev.invitedParticipants, email],
-      invitedEmail: '',
-    }))
-    setInviteStatus(`Added ${email} to trip invite list!`)
+    setInviteLoading(true)
+    setInviteError('')
+    setInviteStatus('')
+    try {
+      const res = await authService.checkUserEmail(email)
+      if (res.success && res.exists) {
+        setForm(prev => ({
+          ...prev,
+          invitedParticipants: [...prev.invitedParticipants, email],
+          invitedEmail: '',
+        }))
+        setInviteStatus(`Added registered camper ${res.user?.name ? `${res.user.name} ` : ''}(${email}) to trip invite list!`)
+      } else {
+        setInviteError(res.message || `No registered user found with email address "${email}". Please ask them to register first.`)
+      }
+    } catch (err) {
+      setInviteError(err.response?.data?.message || `No registered user found with email address "${email}". Please ask them to register first.`)
+    } finally {
+      setInviteLoading(false)
+    }
   }
 
   const handleRemoveParticipant = (emailToRemove) => {
@@ -338,16 +356,29 @@ export default function CreateTrip() {
                     type="email"
                     placeholder="registered.camper@example.com"
                     value={form.invitedEmail}
-                    onChange={(e) => updateField('invitedEmail', e.target.value)}
+                    onChange={(e) => {
+                      updateField('invitedEmail', e.target.value)
+                      setInviteError('')
+                    }}
                     className="flex-1 px-3.5 py-2.5 border border-gray-200 rounded-xl text-xs outline-none focus:border-emerald-600"
                   />
                   <button
                     type="submit"
-                    className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5"
+                    disabled={inviteLoading}
+                    className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 disabled:opacity-50"
                   >
-                    <FaPlus /> Add
+                    <FaPlus /> {inviteLoading ? 'Verifying...' : 'Add'}
                   </button>
                 </form>
+
+                {inviteError && (
+                  <div className="text-xs text-red-700 font-semibold bg-red-50 p-2.5 rounded-xl border border-red-200 flex items-center justify-between">
+                    <span>⚠ {inviteError}</span>
+                    <button type="button" onClick={() => setInviteError('')} className="text-red-500 hover:text-red-700">
+                      <FaTimes />
+                    </button>
+                  </div>
+                )}
 
                 {inviteStatus && (
                   <p className="text-xs text-emerald-800 font-semibold bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">

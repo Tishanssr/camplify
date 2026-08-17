@@ -15,14 +15,7 @@ const campsiteSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
-    rating: {
-      type: Number,
-      default: 4.8,
-    },
-    reviewsCount: {
-      type: Number,
-      default: 10,
-    },
+
     distance: {
       type: String,
       default: 'Nearby',

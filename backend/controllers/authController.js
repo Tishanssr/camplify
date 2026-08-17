@@ -58,14 +58,28 @@ export const register = async (req, res) => {
             `
         };
 
+        let emailSent = true;
+        let emailErrorMsg = '';
+
         try {
             await transporter.sendMail(mailOption);
             console.log(`[AUTH] Verification OTP ${otp} successfully emailed to ${email}`);
         } catch (mailError) {
+            emailSent = false;
+            emailErrorMsg = mailError.message;
             console.error(`[AUTH] Failed to send email to ${email}:`, mailError);
         }
 
-        return res.json({ success: true, message: 'Registration successful! Verification OTP sent to your email.' });
+        if (!emailSent) {
+            return res.json({ 
+                success: true, 
+                token, 
+                emailSent: false, 
+                message: `Registration successful, but OTP email could not be sent: ${emailErrorMsg}. Please click "Send a new code" on the verification page.` 
+            });
+        }
+
+        return res.json({ success: true, token, emailSent: true, message: 'Registration successful! Verification OTP sent to your email.' });
 
     } catch (error) {
         return res.json({ success: false, message: error.message });
@@ -97,7 +111,7 @@ export const login = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
 
-        return res.json({ success: true });
+        return res.json({ success: true, token });
 
     } catch (error) {
         return res.json({ success: false, message: error.message });
@@ -153,11 +167,11 @@ export const sendVerifyotp = async (req, res) => {
         try {
             await transporter.sendMail(mailoption);
             console.log(`[AUTH] Resent OTP ${otp} to ${user.email}`);
+            return res.json({ success: true, message: 'Verification OTP sent to your email.' });
         } catch (mailErr) {
             console.error(`[AUTH] Failed to resend email:`, mailErr.message);
+            return res.json({ success: false, message: `Failed to send email: ${mailErr.message}` });
         }
-
-        return res.json({ success: true, message: 'Verification OTP sent to your email.' });
     } catch (error) {
         return res.json({ success: false, message: error.message });
     }

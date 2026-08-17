@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FaCheck, FaCloudSun, FaEnvelope, FaTrash, FaTimes, FaUsers } from 'react-icons/fa'
+import { FaCheck, FaEnvelope, FaTrash, FaTimes } from 'react-icons/fa'
 import { Link } from 'react-router-dom'
 import ScreenLayout from '../components/layout/ScreenLayout'
 import { notificationService } from '../services/notificationService'
@@ -94,36 +94,67 @@ export default function Notifications() {
   }
 
   const handleDeleteNotification = async (id) => {
-    setItems(prev => prev.filter(item => item._id !== id && item.id !== id))
-    try {
-      await notificationService.deleteNotification(id)
-    } catch (err) {
-      console.error('Failed to delete notification:', err)
+    if (String(id).startsWith('inv-')) {
+      const realId = String(id).replace('inv-', '')
+      setInvitations(prev => prev.filter(inv => String(inv._id) !== realId))
+      try {
+        await invitationService.deleteInvitation(realId)
+      } catch (err) {
+        console.error('Failed to delete invitation notification:', err)
+      }
+    } else {
+      setItems(prev => prev.filter(item => item._id !== id && item.id !== id))
+      try {
+        await notificationService.deleteNotification(id)
+      } catch (err) {
+        console.error('Failed to delete notification:', err)
+      }
     }
   }
 
   const handleClearAllNotifications = async () => {
     setItems([])
+    setInvitations(prev => prev.filter(inv => inv.status === 'pending'))
     try {
       await notificationService.clearAllNotifications()
+      await invitationService.clearRespondedInvitations()
     } catch (err) {
       console.error('Failed to clear all notifications:', err)
     }
   }
 
-  // Exclude invitation notifications from general list so invitations appear ONLY in Trip Invitations
-  const generalNotifications = items.filter(
-    item => !item.title?.toLowerCase().includes('trip invitation') && !item.text?.toLowerCase().includes('invited')
+  // Filter out redundant initial "Trip Invitation" system notifications since the invitation record renders interactively
+  const filteredNotifs = items.filter(
+    item => !item.title?.toLowerCase().includes('trip invitation') && !item.text?.toLowerCase().includes('invited by')
   )
 
-  const pendingInvitations = invitations.filter(inv => inv.status === 'pending')
-  const unreadCount = generalNotifications.filter(i => !i.read).length + pendingInvitations.length
+  const invitationFeedItems = invitations.map(inv => ({
+    id: `inv-${inv._id}`,
+    type: 'invitation',
+    createdAt: inv.createdAt,
+    read: inv.status !== 'pending',
+    data: inv,
+  }))
+
+  const standardFeedItems = filteredNotifs.map(notif => ({
+    id: `notif-${notif._id || notif.id}`,
+    type: 'standard',
+    createdAt: notif.createdAt,
+    read: notif.read,
+    data: notif,
+  }))
+
+  const unifiedFeed = [...invitationFeedItems, ...standardFeedItems].sort(
+    (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+  )
+
+  const unreadCount = unifiedFeed.filter(i => !i.read).length
 
   return (
-    <ScreenLayout title="Notifications & Invitations">
-      <div className="screen-page notification-page space-y-6">
+    <ScreenLayout title="Notifications">
+      <div className="screen-page notification-page space-y-4">
         <div className="notification-heading flex items-center justify-between">
-          <b>{unreadCount} unread item{unreadCount !== 1 ? 's' : ''}</b>
+          <b>{unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}</b>
           <div className="flex items-center gap-2">
             <button
               onClick={handleMarkAllRead}
@@ -134,46 +165,78 @@ export default function Notifications() {
             <button
               onClick={handleClearAllNotifications}
               className="text-xs text-red-700 font-bold bg-red-50 border border-red-200 px-3 py-1 rounded-xl hover:bg-red-100 transition-colors flex items-center gap-1.5 shadow-sm"
-              title="Clear all notifications from database"
+              title="Clear all notifications"
             >
-              <FaTrash className="text-[10px]" /> Clear All Notifications
+              <FaTrash className="text-[10px]" /> Clear All
             </button>
           </div>
         </div>
 
-        {/* SECTION 1: TRIP INVITATIONS */}
-        {invitations.length > 0 && (
-          <section className="space-y-3">
-            <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-              <FaEnvelope className="text-emerald-700" /> Trip Invitations ({invitations.length})
-            </h2>
-
-            <div className="grid gap-3">
-              {invitations.map((inv) => {
+        {loading ? (
+          <p className="p-8 text-center text-gray-400">Loading notifications...</p>
+        ) : unifiedFeed.length === 0 ? (
+          <div className="empty-state p-12 text-center text-gray-400 border border-dashed rounded-2xl border-emerald-800/30 my-3">
+            No notifications right now.
+          </div>
+        ) : (
+          <div className="notification-list space-y-3">
+            {unifiedFeed.map((feedItem) => {
+              if (feedItem.type === 'invitation') {
+                const inv = feedItem.data
                 const tripName = inv.trip?.name || 'Camping Trip'
                 const inviterName = inv.invitedBy?.name || 'A trip organizer'
                 const status = inv.status || 'pending'
                 const feedback = actionStatus[inv._id]
 
                 return (
-                  <article key={inv._id} className={`p-4 border rounded-2xl bg-white shadow-sm space-y-3 ${status === 'pending' ? 'border-amber-200 bg-amber-50/20' : 'border-gray-100'}`}>
+                  <article
+                    key={feedItem.id}
+                    className={`p-4 border rounded-2xl bg-white shadow-sm space-y-3 transition-all ${
+                      status === 'pending' ? 'border-amber-200 bg-amber-50/20' : 'border-gray-100 opacity-90'
+                    }`}
+                  >
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <span className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
-                          <FaUsers />
+                          <FaEnvelope />
                         </span>
                         <div>
-                          <h3 className="text-xs font-bold text-gray-800">{tripName}</h3>
-                          <p className="text-xs text-gray-500">Invited by <b>{inviterName}</b> ({inv.email})</p>
+                          <h3 className="text-xs font-bold text-gray-800">Trip Invitation: {tripName}</h3>
+                          <p className="text-xs text-gray-500">You were invited by <b>{inviterName}</b> ({inv.email})</p>
                         </div>
                       </div>
-                      <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full capitalize ${status === 'accepted' ? 'bg-emerald-100 text-emerald-800' : status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}`}>
-                        {status}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full capitalize ${
+                            status === 'accepted'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : status === 'rejected'
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {status}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteNotification(feedItem.id)
+                          }}
+                          className="text-gray-400 hover:text-red-600 transition-colors p-1"
+                          title="Dismiss notification"
+                        >
+                          <FaTimes className="text-xs" />
+                        </button>
+                      </div>
                     </div>
 
                     {feedback && (
-                      <div className={`p-2.5 rounded-xl text-xs font-medium flex items-center justify-between ${feedback.success ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-700'}`}>
+                      <div
+                        className={`p-2.5 rounded-xl text-xs font-medium flex items-center justify-between ${
+                          feedback.success ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-700'
+                        }`}
+                      >
                         <span>{feedback.message}</span>
                         {feedback.success && feedback.tripId && (
                           <Link to={`/trips/${feedback.tripId}`} className="text-xs font-bold text-emerald-800 hover:underline ml-2">
@@ -203,71 +266,43 @@ export default function Notifications() {
                     )}
                   </article>
                 )
-              })}
-            </div>
-          </section>
-        )}
+              }
 
-        {/* SECTION 2: SYSTEM NOTIFICATIONS */}
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-              <FaCloudSun className="text-emerald-700" /> General Notifications ({generalNotifications.length})
-            </h2>
-            {generalNotifications.length > 0 && (
-              <button
-                onClick={handleClearAllNotifications}
-                className="text-xs text-red-600 font-semibold hover:underline flex items-center gap-1"
-              >
-                <FaTrash className="text-[10px]" /> Clear List
-              </button>
-            )}
+              const item = feedItem.data
+              const notificationId = item._id || item.id || item.title
+              return (
+                <article
+                  className={`notification-card relative group cursor-pointer transition-all ${!item.read ? 'unread' : 'opacity-80'}`}
+                  key={feedItem.id}
+                  onClick={() => handleMarkSingleRead(notificationId)}
+                >
+                  <span className={`notification-icon ${item.color || 'green'}`}>
+                    {typeof item.icon === 'string' ? item.icon : item.icon || <FaCheck />}
+                  </span>
+                  <div className="pr-6">
+                    <h2>{item.title}</h2>
+                    <p>{item.text || item.message}</p>
+                    {item.action && <small>{item.action}</small>}
+                  </div>
+                  <time className="flex items-center gap-2">
+                    <span>● {item.time || 'Recently'}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteNotification(notificationId)
+                      }}
+                      className="text-gray-400 hover:text-red-600 transition-colors p-1"
+                      title="Clear notification"
+                    >
+                      <FaTimes className="text-xs" />
+                    </button>
+                  </time>
+                </article>
+              )
+            })}
           </div>
-
-          {loading ? (
-            <p className="p-8 text-center text-gray-400">Loading notifications...</p>
-          ) : generalNotifications.length === 0 ? (
-            <div className="empty-state p-8 text-center text-gray-400 border border-dashed rounded-2xl border-emerald-800/30 my-3">
-              No general notifications right now.
-            </div>
-          ) : (
-            <div className="notification-list">
-              {generalNotifications.map((item) => {
-                const notificationId = item._id || item.id || item.title
-                return (
-                  <article
-                    className={`notification-card relative group cursor-pointer transition-all ${!item.read ? 'unread' : 'opacity-80'}`}
-                    key={notificationId}
-                    onClick={() => handleMarkSingleRead(notificationId)}
-                  >
-                    <span className={`notification-icon ${item.color || 'green'}`}>
-                      {typeof item.icon === 'string' ? item.icon : item.icon || <FaCheck />}
-                    </span>
-                    <div className="pr-6">
-                      <h2>{item.title}</h2>
-                      <p>{item.text || item.message}</p>
-                      {item.action && <small>{item.action}</small>}
-                    </div>
-                    <time className="flex items-center gap-2">
-                      <span>● {item.time || 'Recently'}</span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDeleteNotification(notificationId)
-                        }}
-                        className="text-gray-400 hover:text-red-600 transition-colors p-1"
-                        title="Clear notification"
-                      >
-                        <FaTimes className="text-xs" />
-                      </button>
-                    </time>
-                  </article>
-                )
-              })}
-            </div>
-          )}
-        </section>
+        )}
       </div>
     </ScreenLayout>
   )

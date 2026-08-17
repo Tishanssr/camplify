@@ -15,29 +15,42 @@ import CreateTrip from './pages/create-trip'
 import CampsiteDetail from './pages/campsite-detail'
 import Profile from './pages/profile'
 import Invitation from './pages/invitation'
-import PersonalChecklist from './pages/personal-checklist'
+import { ProtectedRoute, PublicOnlyRoute } from './components/auth/ProtectedRoute'
 
 const App = () => {
   return (
     <Routes>
-      <Route path="/register" element={<Register />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/verify-email" element={<VerifyEmail />} />
-      <Route path="/dashboard" element={<Dashboard />} />
+      {/* Public Pages (accessible by anyone) */}
+      <Route path="/" element={<Home />} />
       <Route path="/home" element={<Home />} />
       <Route path="/explore" element={<Explore />} />
       <Route path="/explore/:campsiteId" element={<CampsiteDetail />} />
-      <Route path="/trips" element={<Trips />} />
-      <Route path="/trips/new" element={<CreateTrip />} />
-      <Route path="/trips/:tripId/:tab?" element={<TripDetail />} />
-      <Route path="/notifications" element={<Notifications />} />
       <Route path="/pricing" element={<Pricing />} />
-      <Route path="/profile" element={<Profile />} />
       <Route path="/invite/:inviteCode" element={<Invitation />} />
-      <Route path="/my-checklist" element={<PersonalChecklist />} />
-      <Route path="*" element={<Navigate to="/register" replace />} />
+
+      {/* Guest Only Pages (redirects to /dashboard if already logged in) */}
+      <Route element={<PublicOnlyRoute />}>
+        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+      </Route>
+
+      {/* Verification Page */}
+      <Route path="/verify-email" element={<VerifyEmail />} />
+
+      {/* Protected Pages (redirects to /login if NOT logged in) */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/trips" element={<Trips />} />
+        <Route path="/trips/new" element={<CreateTrip />} />
+        <Route path="/trips/:tripId/:tab?" element={<TripDetail />} />
+        <Route path="/notifications" element={<Notifications />} />
+        <Route path="/profile" element={<Profile />} />
+      </Route>
+
+      {/* Catch-all Fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

@@ -23,7 +23,7 @@ export default function Register() {
     try {
       const data = await register({ name: form.name, email: form.email, password: form.password })
       if (!data.success) throw new Error(data.message)
-      navigate('/verify-email', { state: { message: 'Account created. Please verify your email.' } })
+      navigate('/verify-email', { state: { message: data.message || 'Account created. Please verify your email.' } })
     } catch (error) {
       setMessage(error.response?.data?.message || error.message || 'Could not create your account.')
     } finally {

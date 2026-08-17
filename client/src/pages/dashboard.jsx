@@ -70,25 +70,17 @@ export default function Dashboard() {
 
           try {
             const groupPromises = active.map(t => checklistService.getGroupChecklist(t._id || t.id))
-            const results = await Promise.allSettled([...groupPromises, checklistService.getPersonalChecklist()])
+            const results = await Promise.allSettled(groupPromises)
             
             results.forEach(res => {
-              if (res.status === 'fulfilled') {
-                if (res.value?.groups) {
-                  res.value.groups.forEach(g => {
-                    g.items?.forEach(item => {
-                      totalItems++
-                      if (item.done) doneItems++
-                      if (item.assignedTo) sharedEq++
-                    })
-                  })
-                }
-                if (res.value?.items) {
-                  res.value.items.forEach(item => {
+              if (res.status === 'fulfilled' && res.value?.groups) {
+                res.value.groups.forEach(g => {
+                  g.items?.forEach(item => {
                     totalItems++
                     if (item.done) doneItems++
+                    if (item.assignedTo) sharedEq++
                   })
-                }
+                })
               }
             })
             

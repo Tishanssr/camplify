@@ -6,14 +6,7 @@ const groupChecklistSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'trip',
       required: true,
-    },
-    title: {
-      type: String,
-      required: true,
-    },
-    icon: {
-      type: String,
-      default: '⛺',
+      unique: true,
     },
     items: [
       {
@@ -21,7 +14,7 @@ const groupChecklistSchema = new mongoose.Schema(
         done: { type: Boolean, default: false },
         assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
         assignedName: String,
-        weight: String,
+        quantity: { type: String, default: '1' },
       },
     ],
   },

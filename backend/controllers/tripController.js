@@ -5,7 +5,7 @@ import invitationModel from '../model/invitationModel.js'
 import notificationModel from '../model/notificationModel.js'
 import groupChecklistModel from '../model/groupChecklistModel.js'
 
-// Get all trips for the authenticated user
+// Get all trips for the authenticated user (ONLY trips organized or accepted/confirmed)
 export const getTrips = async (req, res) => {
   try {
     const userID = req.userID
@@ -20,7 +20,7 @@ export const getTrips = async (req, res) => {
             participants: {
               $elemMatch: {
                 $or: [{ user: userID }, { email: userEmail }],
-                status: { $nin: ['rejected', 'declined'] },
+                status: { $in: ['confirmed', 'accepted'] },
               },
             },
           },
@@ -34,7 +34,10 @@ export const getTrips = async (req, res) => {
       const tripObj = trip.toObject ? trip.toObject() : trip
       if (Array.isArray(tripObj.participants)) {
         tripObj.participants = tripObj.participants.filter(
-          (p) => p.status !== 'rejected' && p.status !== 'declined'
+          (p) =>
+            p.status === 'confirmed' ||
+            p.status === 'accepted' ||
+            String(p.user?._id || p.user) === String(trip.organizer?._id || trip.organizer)
         )
       }
       return tripObj
@@ -46,9 +49,10 @@ export const getTrips = async (req, res) => {
   }
 }
 
-// Get single trip by ID with populated organizer and participants.user
+// Get single trip by ID with populated organizer and participants.user (requires accepted invitation)
 export const getTripById = async (req, res) => {
   try {
+    const userID = req.userID
     const { id } = req.params
     let trip = null
 
@@ -66,6 +70,56 @@ export const getTripById = async (req, res) => {
 
     if (!trip) {
       return res.json({ success: false, message: 'Trip not found' })
+    }
+
+    const currentUser = await userModel.findById(userID)
+    const userEmail = (currentUser?.email || '').toLowerCase()
+
+    const isOrganizer = String(trip.organizer?._id || trip.organizer) === String(userID)
+
+    const participantEntry = (trip.participants || []).find(
+      (p) =>
+        String(p.user?._id || p.user) === String(userID) ||
+        (p.email && p.email.toLowerCase() === userEmail)
+    )
+
+    // Enforce strict invitation acceptance check
+    if (!isOrganizer) {
+      if (!participantEntry) {
+        return res.json({
+          success: false,
+          accessDenied: true,
+          message: 'Access denied. You are not a participant of this trip.',
+        })
+      }
+
+      if (participantEntry.status === 'pending') {
+        const invitation = await invitationModel.findOne({
+          trip: trip._id,
+          email: userEmail,
+          status: 'pending',
+        })
+
+        return res.json({
+          success: false,
+          accessDenied: true,
+          isPendingInvite: true,
+          invitationId: invitation ? invitation._id : null,
+          tripId: trip._id,
+          tripName: trip.name,
+          location: trip.location,
+          organizerName: trip.organizer?.name || 'Trip Organizer',
+          message: 'You have a pending invitation to this trip. Please accept the invitation first to access trip details.',
+        })
+      }
+
+      if (participantEntry.status === 'rejected' || participantEntry.status === 'declined') {
+        return res.json({
+          success: false,
+          accessDenied: true,
+          message: 'Access denied. You declined the invitation to this trip.',
+        })
+      }
     }
 
     // Ensure trip.participants always includes the organizer
@@ -95,10 +149,13 @@ export const getTripById = async (req, res) => {
       }
     }
 
-    // Filter out declined/rejected participants from response
+    // Filter out unconfirmed / declined / pending participants
     if (Array.isArray(trip.participants)) {
       trip.participants = trip.participants.filter(
-        (p) => p.status !== 'rejected' && p.status !== 'declined'
+        (p) =>
+          p.status === 'confirmed' ||
+          p.status === 'accepted' ||
+          String(p.user?._id || p.user) === String(trip.organizer?._id || trip.organizer)
       )
     }
 
@@ -133,23 +190,28 @@ export const createTrip = async (req, res) => {
     if (Array.isArray(invitedParticipants) && invitedParticipants.length > 0) {
       for (const email of invitedParticipants) {
         const cleanEmail = String(email).toLowerCase().trim()
-        if (!cleanEmail || cleanEmail === organizerUser?.email?.toLowerCase()) continue
-
-        const targetUser = await userModel.findOne({ email: cleanEmail })
-        if (targetUser) {
-          initialParticipants.push({
-            user: targetUser._id,
-            email: cleanEmail,
-            role: 'participant',
-            status: 'pending',
-          })
-        } else {
-          initialParticipants.push({
-            email: cleanEmail,
-            role: 'participant',
-            status: 'pending',
+        if (!cleanEmail) continue
+        if (cleanEmail === organizerUser?.email?.toLowerCase()) {
+          return res.json({
+            success: false,
+            message: 'You are automatically included as the trip organizer. No need to invite yourself.',
           })
         }
+
+        const targetUser = await userModel.findOne({ email: cleanEmail })
+        if (!targetUser) {
+          return res.json({
+            success: false,
+            message: `No registered user found with email address "${cleanEmail}". Please ask them to register first before inviting.`,
+          })
+        }
+
+        initialParticipants.push({
+          user: targetUser._id,
+          email: cleanEmail,
+          role: 'participant',
+          status: 'pending',
+        })
       }
     }
 

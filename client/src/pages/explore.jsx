@@ -123,9 +123,9 @@ export default function Explore() {
                       </Link>
                       <Link
                         to={`/trips/new?campsite=${encodeURIComponent(campsite.name)}`}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[11px] rounded-lg transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white !text-white font-bold text-xs rounded-xl shadow-sm hover:shadow transition-all hover:-translate-y-0.5"
                       >
-                        <FaPlus className="text-[9px]" /> Plan Trip
+                        <FaPlus className="text-[10px]" /> Plan Trip
                       </Link>
                     </div>
                   </div>

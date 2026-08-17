@@ -8,8 +8,7 @@ const navigation = [
   { label: 'Dashboard', to: '/dashboard', icon: FiGrid },
   { label: 'Explore', to: '/explore', icon: FaRegCompass },
   { label: 'My Trips', to: '/trips', icon: FaRegMap },
-  { label: 'My Checklist', to: '/my-checklist', icon: FiGrid },
-  { label: 'Notifications', to: '/notifications', icon: FaRegBell, count: 3 },
+  { label: 'Notifications', to: '/notifications', icon: FaRegBell },
 ]
 
 export default function AppSidebar() {

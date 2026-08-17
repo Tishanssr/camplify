@@ -13,9 +13,7 @@ export const getUserInvitations = async (req, res) => {
     }
 
     const invitations = await invitationModel
-      .find({
-        $or: [{ email: user.email.toLowerCase() }, { invitedBy: userID }],
-      })
+      .find({ email: user.email.toLowerCase() })
       .populate('trip')
       .populate('invitedBy', 'name email')
       .sort({ createdAt: -1 })
@@ -156,3 +154,47 @@ export const acceptInviteByCode = async (req, res) => {
     res.json({ success: false, message: error.message })
   }
 }
+
+// Delete a specific invitation notification
+export const deleteInvitation = async (req, res) => {
+  try {
+    const userID = req.userID
+    const { id } = req.params
+    const user = await userModel.findById(userID)
+    if (!user) {
+      return res.json({ success: false, message: 'User not found' })
+    }
+
+    const invitation = await invitationModel.findById(id)
+    if (!invitation) {
+      return res.json({ success: false, message: 'Invitation not found' })
+    }
+
+    if (invitation.email.toLowerCase() !== user.email.toLowerCase() && String(invitation.invitedBy) !== String(userID)) {
+      return res.json({ success: false, message: 'Unauthorized to delete this invitation' })
+    }
+
+    await invitationModel.findByIdAndDelete(id)
+    res.json({ success: true, message: 'Invitation deleted successfully' })
+  } catch (error) {
+    res.json({ success: false, message: error.message })
+  }
+}
+
+// Clear all responded (accepted/rejected) invitations for current user
+export const clearRespondedInvitations = async (req, res) => {
+  try {
+    const userID = req.userID
+    const user = await userModel.findById(userID)
+    if (user) {
+      await invitationModel.deleteMany({
+        email: user.email.toLowerCase(),
+        status: { $in: ['accepted', 'rejected'] },
+      })
+    }
+    res.json({ success: true, message: 'Responded invitations cleared successfully' })
+  } catch (error) {
+    res.json({ success: false, message: error.message })
+  }
+}
+

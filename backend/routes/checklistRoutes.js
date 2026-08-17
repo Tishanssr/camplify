@@ -1,19 +1,19 @@
 import express from 'express'
 import userAuth from '../middleware/userAuth.js'
 import {
-  addPersonalItem,
-  deletePersonalItem,
+  addGroupItem,
+  assignGroupItem,
+  deleteGroupItem,
   getGroupChecklist,
-  getPersonalChecklist,
-  togglePersonalItem,
+  toggleGroupItem,
 } from '../controllers/checklistController.js'
 
 const checklistRouter = express.Router()
 
-checklistRouter.get('/personal', userAuth, getPersonalChecklist)
-checklistRouter.post('/personal', userAuth, addPersonalItem)
-checklistRouter.patch('/personal/:itemId', userAuth, togglePersonalItem)
-checklistRouter.delete('/personal/:itemId', userAuth, deletePersonalItem)
 checklistRouter.get('/group/:tripId', userAuth, getGroupChecklist)
+checklistRouter.post('/group/:tripId/item', userAuth, addGroupItem)
+checklistRouter.patch('/group/:tripId/item/:itemId', userAuth, toggleGroupItem)
+checklistRouter.post('/group/:tripId/item/:itemId/assign', userAuth, assignGroupItem)
+checklistRouter.delete('/group/:tripId/item/:itemId', userAuth, deleteGroupItem)
 
 export default checklistRouter

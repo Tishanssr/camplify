@@ -25,7 +25,13 @@ export const getCampsites = async (req, res) => {
 export const getCampsiteById = async (req, res) => {
   try {
     const { id } = req.params
-    const campsite = await campsiteModel.findById(id)
+    let campsite = null
+    if (id.match(/^[0-9a-fA-F]{24}$/)) {
+      campsite = await campsiteModel.findById(id)
+    }
+    if (!campsite) {
+      campsite = await campsiteModel.findOne({ name: new RegExp(id, 'i') })
+    }
 
     if (!campsite) {
       return res.json({ success: false, message: 'Campsite not found' })
