@@ -15,7 +15,7 @@ export default function AppHeader({ title = 'Dashboard' }) {
     navigate('/login')
   }
 
-  const userName = user?.name || 'Sumanapala'
+  const userName = user?.name || 'No found user'
 
   return (
     <header className="app-header relative">

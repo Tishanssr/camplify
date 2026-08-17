@@ -3,6 +3,7 @@ import { FaCampground, FaRegBell, FaRegCompass, FaRegMap, FaRegUser } from 'reac
 import { FiChevronLeft, FiChevronRight, FiCreditCard, FiGrid, FiLogOut, FiMoreVertical, FiUser } from 'react-icons/fi'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import logo from '../../assets/camplify_ico.svg'
 
 const navigation = [
   { label: 'Dashboard', to: '/dashboard', icon: FiGrid },
@@ -25,13 +26,13 @@ export default function AppSidebar() {
     navigate('/login')
   }
 
-  const userName = user?.name || 'Sumanapala'
+  const userName = user?.name || 'No found user'
 
   return (
     <aside className={`app-sidebar ${collapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-top flex items-center justify-between">
         <Link className="app-logo flex items-center" to="/dashboard" aria-label="Camplify Dashboard">
-          <span className="logo-icon"><FaCampground /></span>
+          <span className="logo-icon"><img src={logo} alt="Camplify" /></span>
         </Link>
         <button
           className="collapse-button"

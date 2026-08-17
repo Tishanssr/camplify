@@ -1,4 +1,5 @@
-import { FaCampground } from 'react-icons/fa'
+
+import logo from '../../assets/camplify_ico.svg'
 
 const backgrounds = {
   register:
@@ -17,7 +18,7 @@ export default function AuthLayout({ children, variant = 'login' }) {
         style={{ backgroundImage: backgrounds[variant] || backgrounds.login }}
       >
         <a className="brand" href="/login" aria-label="Camplify home">
-          <span className="brand-mark"><FaCampground /></span>
+          <span className="brand-mark"><img src={logo} alt="Camplify" /></span>
           <span>Camplify</span>
         </a>
         <div className="auth-card">{children}</div>

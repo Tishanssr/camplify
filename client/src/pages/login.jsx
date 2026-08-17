@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { FaArrowRight, FaCampground } from 'react-icons/fa'
+import { FaArrowRight} from 'react-icons/fa'
 import AuthInput from '../components/auth/AuthInput'
 import AuthLayout from '../components/auth/AuthLayout'
 import AuthMessage from '../components/auth/AuthMessage'
 import { useAuth } from '../context/AuthContext'
+import logo from '../assets/camplify_ico.svg'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -31,7 +32,7 @@ export default function Login() {
 
   return (
     <AuthLayout variant="login">
-      <div className="card-icon"><FaCampground /></div>
+      <div className="card-icon"><img src={logo} alt="Camplify" /></div>
       <h1>Welcome back</h1>
       <p className="auth-subtitle">Sign in to plan your next adventure</p>
       <form className="auth-form" onSubmit={submit}>

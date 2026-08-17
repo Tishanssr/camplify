@@ -5,6 +5,7 @@ import AuthInput from '../components/auth/AuthInput'
 import AuthLayout from '../components/auth/AuthLayout'
 import AuthMessage from '../components/auth/AuthMessage'
 import { useAuth } from '../context/AuthContext'
+import logo from '../assets/camplify_ico.svg'
 
 export default function Register() {
   const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '', acceptedTerms: false })
@@ -33,7 +34,7 @@ export default function Register() {
 
   return (
     <AuthLayout variant="register">
-      <div className="card-icon">⛺</div>
+      <div className="card-icon"><img src={logo} alt="Camplify" /></div>
       <h1>Create account</h1>
       <p className="auth-subtitle">Join outdoor adventurers on Camplify</p>
       <form className="auth-form" onSubmit={submit}>
