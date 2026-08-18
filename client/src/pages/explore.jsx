@@ -9,29 +9,45 @@ export default function Explore() {
   const [search, setSearch] = useState('')
   const [campsites, setCampsites] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [selectedTag, setSelectedTag] = useState('All')
 
-  useEffect(() => {
-    async function loadCampsites() {
-      try {
-        const data = await campsiteService.getCampsites(search)
-        if (data.success && Array.isArray(data.campsites)) {
-          setCampsites(data.campsites)
-        } else {
-          setCampsites([])
-        }
-      } catch {
+  const fetchCampsites = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await campsiteService.getCampsites(search)
+      if (data && data.success && Array.isArray(data.campsites)) {
+        setCampsites(data.campsites)
+      } else {
+        setError(data?.message || 'Failed to load campsites from database.')
         setCampsites([])
-      } finally {
-        setLoading(false)
       }
+    } catch (err) {
+      console.error('Error loading campsites:', err)
+      setError(err.response?.data?.message || err.message || 'Could not connect to backend server.')
+      setCampsites([])
+    } finally {
+      setLoading(false)
     }
-    loadCampsites()
+  }
+
+  useEffect(() => {
+    fetchCampsites()
   }, [search])
 
   const filteredCampsites = campsites.filter(item => {
-    // 1. Tag filter
-    const matchesTag = selectedTag === 'All' || item.tags?.some(tag => tag.toLowerCase().includes(selectedTag.toLowerCase()))
+    // 1. Tag filter matching (smart keyword matching)
+    const matchesTag = selectedTag === 'All' || item.tags?.some(tag => {
+      const t = tag.toLowerCase()
+      const s = selectedTag.toLowerCase()
+      if (t.includes(s) || s.includes(t)) return true
+      if (s === 'mountain') return t.includes('highland') || t.includes('peak') || t.includes('ridge') || t.includes('cliff')
+      if (s === 'forest') return t.includes('forest') || t.includes('jungle') || t.includes('rainforest') || t.includes('pygmy')
+      if (s === 'river') return t.includes('river') || t.includes('stream') || t.includes('water') || t.includes('rapids') || t.includes('villu') || t.includes('lagoon')
+      if (s === 'historical') return t.includes('ancient') || t.includes('citadel') || t.includes('heritage') || t.includes('sacred')
+      return false
+    })
 
     // 2. Search query filter (instant matching)
     if (!search.trim()) return matchesTag
@@ -69,7 +85,7 @@ export default function Explore() {
         </div>
 
         <div className="filter-pills">
-          {['All', 'Mountain', 'Forest', 'River', 'Hiking', 'Historical'].map((tag) => (
+          {['All', 'Mountain', 'Forest', 'River', 'Highland', 'Grassland', 'Wilderness', 'Historical'].map((tag) => (
             <button
               key={tag}
               className={selectedTag === tag ? 'selected' : ''}
@@ -87,19 +103,42 @@ export default function Explore() {
 
         {loading ? (
           <p className="p-8 text-center text-gray-400">Loading campsites...</p>
+        ) : error ? (
+          <div className="error-state p-8 text-center bg-rose-50 border border-rose-200 rounded-2xl my-6 space-y-3">
+            <p className="text-rose-700 font-bold text-sm">Failed to load campsites from backend server</p>
+            <p className="text-xs text-rose-500">{error}</p>
+            <button
+              type="button"
+              onClick={fetchCampsites}
+              className="px-4 py-2 bg-rose-600 text-white font-bold text-xs rounded-xl hover:bg-rose-700 transition-colors cursor-pointer"
+            >
+              Retry Connection
+            </button>
+          </div>
         ) : filteredCampsites.length === 0 ? (
           <div className="empty-state p-12 text-center text-gray-400 border border-dashed rounded-2xl border-emerald-800/40 my-6 space-y-2">
-            <p className="text-gray-300 font-medium">No campsites found matching "{search}"</p>
-            <p className="text-xs text-gray-500">Try searching for keywords like "Mountain", "Forest", "Yahangala", or "Kalupahana".</p>
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch('')}
-                className="mt-3 px-4 py-1.5 bg-emerald-800 text-white font-bold text-xs rounded-xl hover:bg-emerald-900 transition-colors"
-              >
-                Clear Search
-              </button>
-            )}
+            <p className="text-gray-300 font-medium">No campsites found{search ? ` matching "${search}"` : ''}{selectedTag !== 'All' ? ` under "${selectedTag}"` : ''}</p>
+            <p className="text-xs text-gray-500">Try selecting "All" or searching for terms like "Highland", "Forest", "Yahangala", or "Wangedigala".</p>
+            <div className="flex items-center justify-center gap-2 mt-3">
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="px-4 py-1.5 bg-emerald-800 text-white font-bold text-xs rounded-xl hover:bg-emerald-900 transition-colors cursor-pointer"
+                >
+                  Clear Search
+                </button>
+              )}
+              {selectedTag !== 'All' && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedTag('All')}
+                  className="px-4 py-1.5 bg-gray-700 text-white font-bold text-xs rounded-xl hover:bg-gray-800 transition-colors cursor-pointer"
+                >
+                  Show All Categories
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <div className="campsite-grid">
