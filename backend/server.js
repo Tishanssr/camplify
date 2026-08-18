@@ -22,9 +22,24 @@ connectDb()
 // Middleware
 app.use(express.json())
 app.use(cookieParser())
+
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://camplify-mauve.vercel.app',
+  process.env.CLIENT_URL,
+].filter(Boolean)
+
 app.use(
   cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000', 'https://camplify-mauve.vercel.app'],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true)
+      if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+        return callback(null, true)
+      }
+      return callback(null, true)
+    },
     credentials: true,
   })
 )
