@@ -16,7 +16,7 @@ import invitationRouter from './routes/invitationRoutes.js'
 const app = express()
 const port = process.env.PORT || 4000
 
-// Connect to MongoDB Database
+// DB connection
 connectDb()
 
 // Middleware
@@ -29,7 +29,7 @@ app.use(
   })
 )
 
-// API Endpoints
+// Routes
 app.get('/', (req, res) => res.send('Camplify API Working'))
 app.use('/api/auth', authRouter)
 app.use('/api/user', userRouter)

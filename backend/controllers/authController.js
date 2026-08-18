@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import userModel from "../model/userModel.js";
 import transporter from "../config/nodmailer.js";  
 
+// User registration
 export const register = async (req, res) => {
     const { name, email, password } = req.body;
 
@@ -17,7 +18,6 @@ export const register = async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Generate 6-digit verification OTP during registration
         const otp = String(Math.floor(100000 + Math.random() * 900000));
         const otpExpireAt = Date.now() + 24 * 60 * 60 * 1000;
 
@@ -40,7 +40,6 @@ export const register = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
 
-        // Send OTP verification email
         const mailOption = {
             from: process.env.SENDER_EMAIL,
             to: email,
@@ -86,6 +85,7 @@ export const register = async (req, res) => {
     }
 };
 
+// Login handler
 export const login = async (req, res) => {
     const { email, password } = req.body;
 
@@ -118,6 +118,7 @@ export const login = async (req, res) => {
     }
 };
 
+// Logout handler
 export const logout = async (req, res) => {
     try {
         res.clearCookie('token', {
@@ -132,6 +133,7 @@ export const logout = async (req, res) => {
     }
 };
 
+// Resend verification code
 export const sendVerifyotp = async (req, res) => {
     try {
         const userID = req.userID;
@@ -149,7 +151,7 @@ export const sendVerifyotp = async (req, res) => {
         await user.save();
 
         const mailoption = {
-            from: process.env.SENDER_EMAIL || 'modecc99@gmail.com',
+            from: process.env.SENDER_EMAIL,
             to: user.email,
             subject: 'Account Verification OTP',
             text: `Your OTP is ${otp}. Verify your account using this OTP.`,
@@ -177,6 +179,7 @@ export const sendVerifyotp = async (req, res) => {
     }
 };
 
+// Verify email with OTP
 export const verifyemail = async (req, res) => {
     const userID = req.userID;
     const { otp } = req.body;
@@ -207,6 +210,7 @@ export const verifyemail = async (req, res) => {
     }
 };
 
+// Auth status check
 export const isAuthenticated = async (req, res) => {
     try {
         return res.json({ success: true });
@@ -215,6 +219,7 @@ export const isAuthenticated = async (req, res) => {
     }
 };
 
+// Password reset OTP request
 export const sendResetOtp = async (req, res) => {
     const { email } = req.body;
 
@@ -233,7 +238,7 @@ export const sendResetOtp = async (req, res) => {
         await user.save();
 
         const mailoption = {
-            from: process.env.SENDER_EMAIL || 'modecc99@gmail.com',
+            from: process.env.SENDER_EMAIL,
             to: user.email,
             subject: 'Password Reset OTP',
             text: `Your OTP for resetting your password is ${otp}.`,
@@ -256,6 +261,7 @@ export const sendResetOtp = async (req, res) => {
     }
 };
 
+// Reset password with OTP
 export const resetPassword = async (req, res) => {
     const { email, otp, newPassword } = req.body;
 

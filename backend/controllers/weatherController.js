@@ -1,3 +1,4 @@
+// Campsite location preset coordinates
 const locationMap = {
   yahangala: { lat: 7.425, lon: 80.789, name: 'Yahangala Ground' },
   wangedigala: { lat: 6.782, lon: 80.841, name: 'Wangedigala Peak' },
@@ -12,16 +13,16 @@ const locationMap = {
   nuwara: { lat: 6.949, lon: 80.789, name: 'Nuwara Eliya' },
 }
 
+// Weather & forecast lookup
 export const getWeather = async (req, res) => {
   try {
     const { lat, lon, q, location } = req.query
-    const apiKey = process.env.OPENWEATHER_API_KEY || '365280cbdf8d7afbc956ee63c5a9b369'
+    const apiKey = process.env.OPENWEATHER_API_KEY
 
     let targetLat = lat || 7.3
     let targetLon = lon || 80.8
     let queryLocation = q || location || ''
 
-    // Check if location string matches our Sri Lanka campsite coordinates map
     if (queryLocation) {
       const queryKey = queryLocation.toLowerCase().trim()
       const matchedKey = Object.keys(locationMap).find((key) => queryKey.includes(key))
@@ -56,7 +57,6 @@ export const getWeather = async (req, res) => {
     const currentData = currentRes
     const forecastData = forecastRes?.list || []
 
-    // Process daily forecast summaries (extract 1 forecast per day around 12:00 PM)
     const dailyForecast = forecastData
       .filter((item) => item.dt_txt && item.dt_txt.includes('12:00:00'))
       .slice(0, 5)

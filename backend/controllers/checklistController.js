@@ -3,7 +3,7 @@ import tripModel from '../model/tripModel.js'
 import userModel from '../model/userModel.js'
 import notificationModel from '../model/notificationModel.js'
 
-// Helper function to verify that user is trip organizer or confirmed/accepted participant
+// Verify participant access
 const checkTripAccess = async (tripId, userID) => {
   const trip = await tripModel.findById(tripId)
   if (!trip) return { allowed: false, message: 'Trip not found' }
@@ -31,7 +31,7 @@ const checkTripAccess = async (tripId, userID) => {
   return { allowed: true, trip }
 }
 
-// Get Group Equipment Checklist for a Trip (flat list of items)
+// Fetch group checklist items
 export const getGroupChecklist = async (req, res) => {
   try {
     const userID = req.userID
@@ -56,7 +56,7 @@ export const getGroupChecklist = async (req, res) => {
   }
 }
 
-// Add a new item to group checklist
+// Add item to group checklist
 export const addGroupItem = async (req, res) => {
   try {
     const { tripId } = req.params
@@ -106,7 +106,7 @@ export const addGroupItem = async (req, res) => {
   }
 }
 
-// Toggle Item packed (done) status and notify organizer / participants
+// Toggle item completion
 export const toggleGroupItem = async (req, res) => {
   try {
     const userID = req.userID
@@ -126,7 +126,6 @@ export const toggleGroupItem = async (req, res) => {
     item.done = completed !== undefined ? completed : !item.done
     await group.save()
 
-    // Send Notification to Trip Organizer if item was packed by someone else
     try {
       const trip = await tripModel.findById(tripId)
       const currentUser = await userModel.findById(userID)
@@ -159,7 +158,7 @@ export const toggleGroupItem = async (req, res) => {
   }
 }
 
-// Assign item to a participant or claim equipment
+// Assign item to user
 export const assignGroupItem = async (req, res) => {
   try {
     const userID = req.userID
@@ -185,7 +184,6 @@ export const assignGroupItem = async (req, res) => {
     item.assignedName = assignedUser ? assignedUser.name : ''
     await group.save()
 
-    // Send Notification to Assigned Participant
     try {
       const trip = await tripModel.findById(tripId)
       const assigningUser = await userModel.findById(userID)
@@ -218,7 +216,7 @@ export const assignGroupItem = async (req, res) => {
   }
 }
 
-// Delete Item from group checklist
+// Remove checklist item
 export const deleteGroupItem = async (req, res) => {
   try {
     const { tripId, itemId } = req.params

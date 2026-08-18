@@ -5,7 +5,7 @@ import invitationModel from '../model/invitationModel.js'
 import notificationModel from '../model/notificationModel.js'
 import groupChecklistModel from '../model/groupChecklistModel.js'
 
-// Get all trips for the authenticated user (ONLY trips organized or accepted/confirmed)
+// Fetch user trips
 export const getTrips = async (req, res) => {
   try {
     const userID = req.userID
@@ -49,7 +49,7 @@ export const getTrips = async (req, res) => {
   }
 }
 
-// Get single trip by ID with populated organizer and participants.user (requires accepted invitation)
+// Get trip details by ID
 export const getTripById = async (req, res) => {
   try {
     const userID = req.userID
@@ -83,7 +83,6 @@ export const getTripById = async (req, res) => {
         (p.email && p.email.toLowerCase() === userEmail)
     )
 
-    // Enforce strict invitation acceptance check
     if (!isOrganizer) {
       if (!participantEntry) {
         return res.json({
@@ -122,7 +121,6 @@ export const getTripById = async (req, res) => {
       }
     }
 
-    // Ensure trip.participants always includes the organizer
     if (!trip.participants || trip.participants.length === 0) {
       trip.participants = [
         {
@@ -149,7 +147,6 @@ export const getTripById = async (req, res) => {
       }
     }
 
-    // Filter out unconfirmed / declined / pending participants
     if (Array.isArray(trip.participants)) {
       trip.participants = trip.participants.filter(
         (p) =>
@@ -165,7 +162,7 @@ export const getTripById = async (req, res) => {
   }
 }
 
-// Create a new trip
+// Create new trip
 export const createTrip = async (req, res) => {
   try {
     const userID = req.userID
@@ -186,7 +183,6 @@ export const createTrip = async (req, res) => {
       },
     ]
 
-    // Process invited participants provided during trip creation wizard
     if (Array.isArray(invitedParticipants) && invitedParticipants.length > 0) {
       for (const email of invitedParticipants) {
         const cleanEmail = String(email).toLowerCase().trim()
@@ -230,7 +226,6 @@ export const createTrip = async (req, res) => {
 
     await newTrip.save()
 
-    // Send invitations and notifications to registered target users
     for (const p of initialParticipants) {
       if (p.role === 'participant' && p.user) {
         const inviteCode = `${newTrip._id.toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`
@@ -265,7 +260,7 @@ export const createTrip = async (req, res) => {
   }
 }
 
-// Update trip
+// Update trip details
 export const updateTrip = async (req, res) => {
   try {
     const { id } = req.params
@@ -276,7 +271,7 @@ export const updateTrip = async (req, res) => {
   }
 }
 
-// Delete trip (ONLY organizer can delete, cascading deletes group checklists, invitations, & notifies participants)
+// Delete trip (organizer only)
 export const deleteTrip = async (req, res) => {
   try {
     const { id } = req.params
@@ -287,17 +282,14 @@ export const deleteTrip = async (req, res) => {
       return res.json({ success: false, message: 'Trip not found' })
     }
 
-    // Verify permission: only organizer can delete
     const organizerId = String(trip.organizer?._id || trip.organizer)
     if (organizerId !== String(userID)) {
       return res.json({ success: false, message: 'Only the trip organizer can delete this trip' })
     }
 
-    // Cascading cleanups: delete group checklists & invitations linked to this trip
     await groupChecklistModel.deleteMany({ trip: id })
     await invitationModel.deleteMany({ trip: id })
 
-    // Notify participants about trip deletion
     if (Array.isArray(trip.participants)) {
       for (const p of trip.participants) {
         const participantUserId = p.user?._id || p.user
@@ -321,7 +313,7 @@ export const deleteTrip = async (req, res) => {
   }
 }
 
-// Invite participant by email (ONLY the trip creator / organizer can invite registered users)
+// Invite participant by email
 export const inviteParticipant = async (req, res) => {
   try {
     const { id } = req.params
@@ -332,13 +324,11 @@ export const inviteParticipant = async (req, res) => {
       return res.json({ success: false, message: 'Email address is required' })
     }
 
-    // 1. Verify trip exists
     const trip = await tripModel.findById(id)
     if (!trip) {
       return res.json({ success: false, message: 'Trip not found' })
     }
 
-    // 2. Strict Check: Only the trip creator (organizer) can invite participants
     if (String(trip.organizer) !== String(userID)) {
       return res.json({
         success: false,
@@ -348,7 +338,6 @@ export const inviteParticipant = async (req, res) => {
 
     const cleanEmail = email.toLowerCase().trim()
 
-    // 3. Verify user exists in the system database
     const targetUser = await userModel.findOne({ email: cleanEmail })
     if (!targetUser) {
       return res.json({
@@ -357,7 +346,6 @@ export const inviteParticipant = async (req, res) => {
       })
     }
 
-    // 4. Check if user is already invited/added
     const alreadyInvited = trip.participants.some(
       (p) => String(p.user) === String(targetUser._id) || p.email === cleanEmail
     )
@@ -368,7 +356,6 @@ export const inviteParticipant = async (req, res) => {
       })
     }
 
-    // 5. Add user to trip participants with status 'pending'
     trip.participants.push({
       user: targetUser._id,
       email: cleanEmail,
@@ -377,7 +364,6 @@ export const inviteParticipant = async (req, res) => {
     })
     await trip.save()
 
-    // 6. Create Invitation record
     const inviteCode = `${id.slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`
     const invitation = new invitationModel({
       trip: id,
@@ -388,7 +374,6 @@ export const inviteParticipant = async (req, res) => {
     })
     await invitation.save()
 
-    // 7. Push notification to the invited user
     const notification = new notificationModel({
       user: targetUser._id,
       title: `Trip Invitation: ${trip.name}`,
@@ -398,7 +383,6 @@ export const inviteParticipant = async (req, res) => {
     })
     await notification.save()
 
-    // Return populated trip data
     const updatedTrip = await tripModel
       .findById(id)
       .populate('organizer', 'name email')

@@ -3,7 +3,7 @@ import tripModel from '../model/tripModel.js'
 import userModel from '../model/userModel.js'
 import notificationModel from '../model/notificationModel.js'
 
-// Get all invitations for current logged-in user
+// User invitations lookup
 export const getUserInvitations = async (req, res) => {
   try {
     const userID = req.userID
@@ -24,12 +24,12 @@ export const getUserInvitations = async (req, res) => {
   }
 }
 
-// Respond to an invitation (accept or reject)
+// Respond to trip invitation
 export const respondInvitation = async (req, res) => {
   try {
     const userID = req.userID
     const { id } = req.params
-    const { status, action } = req.body // 'accepted' | 'rejected' | 'declined'
+    const { status, action } = req.body
 
     let targetStatus = status || (action === 'accept' ? 'accepted' : 'rejected')
     if (targetStatus === 'declined') targetStatus = 'rejected'
@@ -48,7 +48,6 @@ export const respondInvitation = async (req, res) => {
       return res.json({ success: false, message: 'Invitation not found' })
     }
 
-    // Verify recipient matches user email
     if (invitation.email.toLowerCase() !== user.email.toLowerCase()) {
       return res.json({ success: false, message: 'You are not authorized to respond to this invitation.' })
     }
@@ -56,12 +55,10 @@ export const respondInvitation = async (req, res) => {
     invitation.status = targetStatus
     await invitation.save()
 
-    // Update trip participant status
     if (invitation.trip) {
       const trip = await tripModel.findById(invitation.trip._id || invitation.trip)
       if (trip) {
         if (targetStatus === 'rejected') {
-          // If declined, completely remove the user from trip.participants list
           trip.participants = trip.participants.filter(
             (p) => String(p.user) !== String(userID) && (p.email || '').toLowerCase() !== user.email.toLowerCase()
           )
@@ -86,7 +83,6 @@ export const respondInvitation = async (req, res) => {
       }
     }
 
-    // Push notification to organizer
     if (invitation.invitedBy) {
       const notifText = targetStatus === 'accepted'
         ? `${user.name} accepted your invitation to join ${invitation.trip?.name || 'the trip'}!`
@@ -113,7 +109,7 @@ export const respondInvitation = async (req, res) => {
   }
 }
 
-// Accept trip by invite code or direct link
+// Accept trip via invite code
 export const acceptInviteByCode = async (req, res) => {
   try {
     const userID = req.userID
@@ -155,7 +151,7 @@ export const acceptInviteByCode = async (req, res) => {
   }
 }
 
-// Delete a specific invitation notification
+// Remove invitation notification
 export const deleteInvitation = async (req, res) => {
   try {
     const userID = req.userID
@@ -181,7 +177,7 @@ export const deleteInvitation = async (req, res) => {
   }
 }
 
-// Clear all responded (accepted/rejected) invitations for current user
+// Clear responded invitations
 export const clearRespondedInvitations = async (req, res) => {
   try {
     const userID = req.userID
