@@ -33,5 +33,5 @@ const campsiteSchema = new mongoose.Schema(
   { timestamps: true }
 )
 
-const campsiteModel = mongoose.models.campsite || mongoose.model('campsite', campsiteSchema)
+const campsiteModel = mongoose.models.campsites || mongoose.model('campsites', campsiteSchema)
 export default campsiteModel
