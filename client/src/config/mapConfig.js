@@ -1,4 +1,4 @@
-export const GEOAPIFY_API_KEY = import.meta.env.VITE_GEOAPIFY_API_KEY || ''
+export const GEOAPIFY_API_KEY = import.meta.env.GEOAPIFY_API_KEY || import.meta.env.VITE_GEOAPIFY_API_KEY || ''
 
 export const mapConfig = {
   apiKey: GEOAPIFY_API_KEY,

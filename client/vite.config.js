@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
+  envPrefix: ['VITE_', 'GEOAPIFY_'],
   plugins: [
     react(),
     tailwindcss()
@@ -13,5 +14,5 @@ export default defineConfig({
       '/api': 'http://localhost:4000',
     },
   },
-  
 })
+
