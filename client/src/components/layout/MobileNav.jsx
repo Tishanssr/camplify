@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { FaBell, FaRegCompass, FaRegMap, FaRegUser } from 'react-icons/fa'
-import { FiGrid, FiLogOut, FiUser } from 'react-icons/fi'
+import { FiGrid, FiLogOut, FiShield, FiUser } from 'react-icons/fi'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
 export default function MobileNav() {
   const [profileOpen, setProfileOpen] = useState(false)
-  const { user, logout } = useAuth()
+  const { user, isAdmin, logout } = useAuth()
   const navigate = useNavigate()
 
   const handleLogout = async () => {
@@ -15,33 +15,42 @@ export default function MobileNav() {
     navigate('/login')
   }
 
-  const userName = user?.name || 'Sumanapala'
+  const userName = user?.name || 'Admin User'
 
   return (
     <>
       <nav className="mobile-nav">
-        <NavLink to="/dashboard">
-          <FiGrid />
-          <span>Dashboard</span>
-        </NavLink>
-        <NavLink to="/explore">
-          <FaRegCompass />
-          <span>Explore</span>
-        </NavLink>
-        <NavLink to="/trips">
-          <FaRegMap />
-          <span>Trips</span>
-        </NavLink>
-        <NavLink to="/notifications">
-          <FaBell />
-          <span>Alerts</span>
-        </NavLink>
+        {isAdmin ? (
+          <NavLink to="/admin/campsites">
+            <FiShield />
+            <span>Admin Portal</span>
+          </NavLink>
+        ) : (
+          <>
+            <NavLink to="/dashboard">
+              <FiGrid />
+              <span>Dashboard</span>
+            </NavLink>
+            <NavLink to="/explore">
+              <FaRegCompass />
+              <span>Explore</span>
+            </NavLink>
+            <NavLink to="/trips">
+              <FaRegMap />
+              <span>Trips</span>
+            </NavLink>
+            <NavLink to="/notifications">
+              <FaBell />
+              <span>Alerts</span>
+            </NavLink>
+          </>
+        )}
         <button
           type="button"
-          className="flex flex-col items-center gap-0.5 text-gray-500 text-[9px] font-semibold"
+          className={profileOpen ? 'active' : ''}
           onClick={() => setProfileOpen(!profileOpen)}
         >
-          <FaRegUser className="text-base" />
+          <FaRegUser />
           <span>Profile</span>
         </button>
       </nav>
@@ -62,20 +71,22 @@ export default function MobileNav() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-gray-800">{userName}</h3>
-                <p className="text-xs text-gray-400">Trail Explorer</p>
+                <p className="text-xs text-emerald-600 font-semibold">{isAdmin ? 'System Admin' : 'Trail Explorer'}</p>
               </div>
             </div>
 
-            <button
-              type="button"
-              className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-emerald-50 rounded-xl"
-              onClick={() => {
-                setProfileOpen(false)
-                navigate('/profile')
-              }}
-            >
-              <FiUser className="text-emerald-600 text-base" /> View Profile & Settings
-            </button>
+            {!isAdmin && (
+              <button
+                type="button"
+                className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-emerald-50 rounded-xl"
+                onClick={() => {
+                  setProfileOpen(false)
+                  navigate('/profile')
+                }}
+              >
+                <FiUser className="text-emerald-600 text-base" /> View Profile & Settings
+              </button>
+            )}
 
             <button
               type="button"

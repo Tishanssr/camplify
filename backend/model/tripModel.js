@@ -20,6 +20,12 @@ const tripSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    campsiteId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'campsites',
+      default: null,
+    },
+
     coordinates: {
       lat: Number,
       lng: Number,
@@ -36,6 +42,15 @@ const tripSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    meetingTime: {
+      type: String,
+      default: '07:30',
+    },
+    meetingCoordinates: {
+      lat: Number,
+      lng: Number,
+    },
+
     status: {
       type: String,
       enum: ['upcoming', 'planning', 'completed', 'cancelled'],

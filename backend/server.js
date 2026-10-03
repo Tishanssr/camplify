@@ -12,6 +12,9 @@ import notificationRouter from './routes/notificationRoutes.js'
 import campsiteRouter from './routes/campsiteRoutes.js'
 import weatherRouter from './routes/weatherRoutes.js'
 import invitationRouter from './routes/invitationRoutes.js'
+import imageRouter from './routes/imageRoutes.js'
+import paymentRouter from './routes/paymentRoutes.js'
+import sseRouter from './routes/sseRoutes.js'
 
 const app = express()
 const port = process.env.PORT || 4000
@@ -21,6 +24,7 @@ connectDb()
 
 // Middleware
 app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
 app.use(
   cors({
@@ -39,5 +43,9 @@ app.use('/api/notifications', notificationRouter)
 app.use('/api/campsites', campsiteRouter)
 app.use('/api/weather', weatherRouter)
 app.use('/api/invitations', invitationRouter)
+app.use('/api/images', imageRouter)
+app.use('/api/payments', paymentRouter)
+app.use('/api/sse', sseRouter)
+
 
 app.listen(port, () => console.log(`Server started on port:${port}`))

@@ -27,6 +27,20 @@ const notificationSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    type: {
+      type: String,
+      enum: ['invitation', 'trip_update', 'trip_deleted', 'invitation_response', 'checklist_update', 'system'],
+      default: 'system',
+    },
+    relatedId: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+    },
+    expiresAt: {
+      type: Date,
+      default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      index: { expires: 0 },
+    },
   },
   { timestamps: true }
 )

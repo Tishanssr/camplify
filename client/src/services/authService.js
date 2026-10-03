@@ -40,6 +40,20 @@ export const authService = {
     return response.data
   },
 
+  async uploadAvatar(file) {
+    const formData = new FormData()
+    formData.append('avatar', file)
+    const response = await api.post('/user/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response.data
+  },
+
+  async getPublicProfile(userId) {
+    const response = await api.get(`/user/profile/${userId}`)
+    return response.data
+  },
+
   async checkUserEmail(email) {
     const response = await api.get(`/user/check-email?email=${encodeURIComponent(email)}`)
     return response.data

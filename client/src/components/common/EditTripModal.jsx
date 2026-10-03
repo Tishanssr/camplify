@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { FaEdit, FaTimes, FaTrash } from 'react-icons/fa'
+import { FaEdit, FaTimes, FaTrash, FaLock } from 'react-icons/fa'
 import { tripService } from '../../services/tripService'
 import { getTodayString } from '../../utils/dateUtils'
+import GeoapifyAutocomplete from './GeoapifyAutocomplete'
 
-export default function EditTripModal({ trip, isOpen, onClose, onSuccess, onDelete }) {
+export default function EditTripModal({ trip, isOrganizer = false, isOpen, onClose, onSuccess, onDelete }) {
   const todayStr = getTodayString()
   const [form, setForm] = useState({
     name: '',
@@ -11,6 +12,8 @@ export default function EditTripModal({ trip, isOpen, onClose, onSuccess, onDele
     startDate: '',
     endDate: '',
     meetingPoint: '',
+    meetingTime: '07:30',
+    meetingCoordinates: null,
     description: '',
   })
   const [loading, setLoading] = useState(false)
@@ -33,6 +36,8 @@ export default function EditTripModal({ trip, isOpen, onClose, onSuccess, onDele
         startDate: formatDateForInput(trip.startDate),
         endDate: formatDateForInput(trip.endDate),
         meetingPoint: trip.meetingPoint || '',
+        meetingTime: trip.meetingTime || '07:30',
+        meetingCoordinates: trip.meetingCoordinates || null,
         description: trip.description || '',
       })
       setError('')
@@ -42,6 +47,7 @@ export default function EditTripModal({ trip, isOpen, onClose, onSuccess, onDele
   if (!isOpen || !trip) return null
 
   const tripId = trip._id || trip.id
+  const isConfigured = Boolean(trip.campsiteId || (trip.location && String(trip.location).trim() !== ''))
 
   const handleChange = (field, val) => {
     setError('')
@@ -50,8 +56,8 @@ export default function EditTripModal({ trip, isOpen, onClose, onSuccess, onDele
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.name.trim() || !form.location.trim()) {
-      setError('Trip name and location are required.')
+    if (!form.name.trim()) {
+      setError('Trip name is required.')
       return
     }
 
@@ -71,10 +77,17 @@ export default function EditTripModal({ trip, isOpen, onClose, onSuccess, onDele
     try {
       const updatePayload = {
         name: form.name.trim(),
-        location: form.location.trim(),
         meetingPoint: form.meetingPoint.trim(),
+        meetingTime: form.meetingTime || '07:30',
+        meetingCoordinates: form.meetingCoordinates,
         description: form.description.trim(),
       }
+
+      // Only include location if organizer and not configured yet
+      if (isOrganizer && !isConfigured && form.location.trim()) {
+        updatePayload.location = form.location.trim()
+      }
+
       if (form.startDate) updatePayload.startDate = new Date(form.startDate)
       if (form.endDate) updatePayload.endDate = new Date(form.endDate)
 
@@ -133,7 +146,11 @@ export default function EditTripModal({ trip, isOpen, onClose, onSuccess, onDele
         <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
           <FaEdit className="text-emerald-700" /> Edit Trip Details
         </h2>
-        <p className="text-xs text-gray-500">Update information for <b>{trip.name}</b>.</p>
+        <p className="text-xs text-gray-500">
+          {isOrganizer
+            ? `Update information for ${trip.name}.`
+            : `Editing trip details for ${trip.name} as a confirmed member.`}
+        </p>
 
         {error && (
           <div className="p-3 bg-red-50 text-red-700 border border-red-200 text-xs rounded-xl">
@@ -153,15 +170,34 @@ export default function EditTripModal({ trip, isOpen, onClose, onSuccess, onDele
             />
           </div>
 
+          {/* Location section - Locked when trip is configured */}
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Location / Campsite *</label>
-            <input
-              type="text"
-              required
-              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs outline-none focus:border-emerald-600"
-              value={form.location}
-              onChange={(e) => handleChange('location', e.target.value)}
-            />
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Location / Campsite</label>
+            {isConfigured ? (
+              <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between text-xs text-gray-700">
+                <span className="font-medium">{trip.location}</span>
+                <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-[10px] font-bold flex items-center gap-1">
+                  <FaLock className="text-[9px]" /> Locked
+                </span>
+              </div>
+            ) : isOrganizer ? (
+              <input
+                type="text"
+                required
+                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs outline-none focus:border-emerald-600"
+                value={form.location}
+                onChange={(e) => handleChange('location', e.target.value)}
+              />
+            ) : (
+              <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-600">
+                {trip.location}
+              </div>
+            )}
+            {isConfigured && (
+              <p className="text-[11px] text-gray-500 mt-1">
+                Location & campsite are permanently locked once configured.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -187,15 +223,37 @@ export default function EditTripModal({ trip, isOpen, onClose, onSuccess, onDele
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Meeting Point</label>
-            <input
-              type="text"
-              placeholder="e.g. Trailhead main gate at 7:30 AM"
-              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs outline-none focus:border-emerald-600"
-              value={form.meetingPoint}
-              onChange={(e) => handleChange('meetingPoint', e.target.value)}
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="sm:col-span-2">
+              <GeoapifyAutocomplete
+                label="Meeting Point / Assembly Area"
+                value={form.meetingPoint}
+                placeholder="e.g. Colombo Fort Railway Station or Trailhead parking"
+                onChange={(val) => {
+                  handleChange('meetingPoint', val)
+                  if (!val) handleChange('meetingCoordinates', null)
+                }}
+                onSelect={(place) => {
+                  if (place) {
+                    handleChange('meetingPoint', place.formatted)
+                    if (place.lat && place.lng) {
+                      handleChange('meetingCoordinates', { lat: place.lat, lng: place.lng })
+                    }
+                  } else {
+                    handleChange('meetingCoordinates', null)
+                  }
+                }}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Meeting Time</label>
+              <input
+                type="time"
+                value={form.meetingTime}
+                onChange={(e) => handleChange('meetingTime', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs outline-none focus:border-emerald-600 bg-white"
+              />
+            </div>
           </div>
 
           <div>
@@ -210,14 +268,18 @@ export default function EditTripModal({ trip, isOpen, onClose, onSuccess, onDele
           </div>
 
           <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={loading}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs text-red-600 hover:text-red-800 font-semibold border border-red-200 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
-            >
-              <FaTrash /> Delete Trip
-            </button>
+            {isOrganizer ? (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={loading}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs text-red-600 hover:text-red-800 font-semibold border border-red-200 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+              >
+                <FaTrash /> Delete Trip
+              </button>
+            ) : (
+              <span className="text-[11px] text-gray-400">Organizer controls trip deletion</span>
+            )}
 
             <div className="flex gap-2">
               <button

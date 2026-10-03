@@ -1,7 +1,10 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from 'crypto';
 import userModel from "../model/userModel.js";
+import tripModel from "../model/tripModel.js";
 import transporter from "../config/nodmailer.js";  
+import { validatePassword } from "../utils/validatePassword.js";
 
 // User registration
 export const register = async (req, res) => {
@@ -9,6 +12,11 @@ export const register = async (req, res) => {
 
     if (!name || !email || !password) {
         return res.json({ success: false, message: 'Missing Details' });
+    }
+
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+        return res.json({ success: false, message: passwordValidation.message });
     }
     try {
         const existingUser = await userModel.findOne({ email });
@@ -18,7 +26,7 @@ export const register = async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const otp = String(Math.floor(100000 + Math.random() * 900000));
+        const otp = String(crypto.randomInt(100000, 1000000));
         const otpExpireAt = Date.now() + 24 * 60 * 60 * 1000;
 
         const user = new userModel({
@@ -32,7 +40,28 @@ export const register = async (req, res) => {
 
         await user.save();
 
+        // Link any pending trip invitations matching this user's email
+        try {
+            const cleanUserEmail = String(email).toLowerCase().trim();
+            const tripsWithInvite = await tripModel.find({ "participants.email": cleanUserEmail });
+            for (const trip of tripsWithInvite) {
+                let updated = false;
+                trip.participants.forEach((p) => {
+                    if (p.email && p.email.toLowerCase() === cleanUserEmail && !p.user) {
+                        p.user = user._id;
+                        updated = true;
+                    }
+                });
+                if (updated) {
+                    await trip.save();
+                }
+            }
+        } catch (linkError) {
+            console.error('[AUTH] Error linking pending trip invitations:', linkError);
+        }
+
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -62,7 +91,7 @@ export const register = async (req, res) => {
 
         try {
             await transporter.sendMail(mailOption);
-            console.log(`[AUTH] Verification OTP ${otp} successfully emailed to ${email}`);
+            console.log(`[AUTH] Verification OTP successfully emailed to ${email}`);
         } catch (mailError) {
             emailSent = false;
             emailErrorMsg = mailError.message;
@@ -93,7 +122,8 @@ export const login = async (req, res) => {
         return res.json({ success: false, message: 'Email and Password required' });
     }
     try {
-        const user = await userModel.findOne({ email });
+        const cleanEmail = String(email).toLowerCase().trim();
+        const user = await userModel.findOne({ email: cleanEmail });
         if (!user) {
             return res.json({ success: false, message: 'Invalid email or password' });
         }
@@ -145,7 +175,7 @@ export const sendVerifyotp = async (req, res) => {
             return res.json({ success: false, message: "Account already verified" });
         }
 
-        const otp = String(Math.floor(100000 + Math.random() * 900000));
+        const otp = String(crypto.randomInt(100000, 1000000));
         user.verifyOtp = otp;
         user.verifyOtpExpireAt = Date.now() + 24 * 60 * 60 * 1000;
         await user.save();
@@ -168,7 +198,7 @@ export const sendVerifyotp = async (req, res) => {
 
         try {
             await transporter.sendMail(mailoption);
-            console.log(`[AUTH] Resent OTP ${otp} to ${user.email}`);
+            console.log(`[AUTH] Resent OTP to ${user.email}`);
             return res.json({ success: true, message: 'Verification OTP sent to your email.' });
         } catch (mailErr) {
             console.error(`[AUTH] Failed to resend email:`, mailErr.message);
@@ -231,7 +261,7 @@ export const sendResetOtp = async (req, res) => {
         if (!user) {
             return res.json({ success: false, message: 'User not found' });
         }
-        const otp = String(Math.floor(100000 + Math.random() * 900000));
+        const otp = String(crypto.randomInt(100000, 1000000));
         user.resetOtp = otp;
         user.resetOtpExpireAt = Date.now() + 15 * 60 * 1000;
 
@@ -267,6 +297,11 @@ export const resetPassword = async (req, res) => {
 
     if (!email || !otp || !newPassword) {
         return res.json({ success: false, message: 'Email, OTP, and new password are required' });
+    }
+
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
+        return res.json({ success: false, message: passwordValidation.message });
     }
     try {
         const user = await userModel.findOne({ email });

@@ -14,13 +14,16 @@ export const AuthProvider = ({ children }) => {
       if (data.success && data.userData) {
         setUser(data.userData)
         setIsLoggedIn(true)
+        return data.userData
       } else {
         setUser(null)
         setIsLoggedIn(false)
+        return null
       }
     } catch {
       setUser(null)
       setIsLoggedIn(false)
+      return null
     } finally {
       setLoading(false)
     }
@@ -36,7 +39,8 @@ export const AuthProvider = ({ children }) => {
       if (res.token) {
         localStorage.setItem('token', res.token)
       }
-      await fetchUserData()
+      const userData = await fetchUserData()
+      return { ...res, userData }
     }
     return res
   }
@@ -64,8 +68,11 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
+  const isAdmin = user?.role === 'admin'
+  const isPremium = Boolean(user?.isPremium)
+
   return (
-    <AuthContext.Provider value={{ user, isLoggedIn, loading, login, register, logout, fetchUserData }}>
+    <AuthContext.Provider value={{ user, isLoggedIn, isAdmin, isPremium, loading, login, register, logout, fetchUserData }}>
       {children}
     </AuthContext.Provider>
   )

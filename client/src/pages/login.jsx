@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { FaArrowRight} from 'react-icons/fa'
 import AuthInput from '../components/auth/AuthInput'
 import AuthLayout from '../components/auth/AuthLayout'
@@ -8,9 +8,12 @@ import { useAuth } from '../context/AuthContext'
 import logo from '../assets/camplify_ico.svg'
 
 export default function Login() {
+  const [searchParams] = useSearchParams()
+  const redirect = searchParams.get('redirect')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
+  const [messageType, setMessageType] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const { login } = useAuth()
@@ -19,12 +22,20 @@ export default function Login() {
     event.preventDefault()
     setLoading(true)
     setMessage('')
+    setMessageType('')
     try {
       const data = await login({ email, password })
       if (!data.success) throw new Error(data.message || 'Login failed')
-      navigate('/dashboard')
+      if (redirect) {
+        navigate(redirect, { replace: true })
+      } else if (data.userData?.role === 'admin') {
+        navigate('/admin/campsites', { replace: true })
+      } else {
+        navigate('/dashboard', { replace: true })
+      }
     } catch (error) {
       setMessage(error.response?.data?.message || error.message || 'Could not sign in.')
+      setMessageType('error')
     } finally {
       setLoading(false)
     }
@@ -39,11 +50,11 @@ export default function Login() {
         <AuthInput id="email" label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
         <div className="label-row"><span>Password</span><Link to="/forgot-password">Forgot password?</Link></div>
         <AuthInput id="password" label="" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
-        <AuthMessage message={message} />
+        <AuthMessage message={message} type={messageType} />
         <button className="primary-button" disabled={loading}>{loading ? 'Signing in…' : <>Sign In <FaArrowRight /></>}</button>
       </form>
       <div className="divider"><span>or continue with</span></div>
-      <p className="switch-copy">New to Camplify? <Link to="/register">Create account</Link></p>
+      <p className="switch-copy">New to Camplify? <Link to={redirect ? `/register?redirect=${encodeURIComponent(redirect)}` : '/register'}>Create account</Link></p>
     </AuthLayout>
   )
 }

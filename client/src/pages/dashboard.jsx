@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react'
-import { FaCheckCircle, FaCloudSun, FaRegCompass, FaRegListAlt, FaUsers } from 'react-icons/fa'
+import { FaCheckCircle, FaCloudSun, FaRegCompass, FaRegListAlt, FaUsers, FaUmbrella, FaWind, FaTint, FaExclamationTriangle } from 'react-icons/fa'
 import { useNavigate } from 'react-router-dom'
 import AppHeader from '../components/layout/AppHeader'
 import AppSidebar from '../components/layout/AppSidebar'
 import MobileNav from '../components/layout/MobileNav'
 import StatCard from '../components/dashboard/StatCard'
 import UpcomingTrip from '../components/dashboard/UpcomingTrip'
+import WeatherIcon from '../components/common/WeatherIcon'
 import { useAuth } from '../context/AuthContext'
 import { tripService } from '../services/tripService'
-import { campsiteService } from '../services/campsiteService'
+import { weatherService } from '../services/weatherService'
 import { checklistService } from '../services/checklistService'
-import { getTripCategory } from '../utils/dateUtils'
+import { getGreeting, getTripCategory } from '../utils/dateUtils'
 
 export default function Dashboard() {
   const { user } = useAuth()
@@ -18,9 +19,17 @@ export default function Dashboard() {
   const [trips, setTrips] = useState([])
   const [loading, setLoading] = useState(true)
   const [weatherData, setWeatherData] = useState(null)
+  const [weatherLoading, setWeatherLoading] = useState(false)
+  const [weatherError, setWeatherError] = useState(null)
   const [checklistStats, setChecklistStats] = useState({ donePct: 0, sharedEq: 0 })
+  const greeting = getGreeting()
 
   useEffect(() => {
+    if (user && user.role === 'admin') {
+      navigate('/admin/campsites', { replace: true })
+      return
+    }
+
     async function loadData() {
       try {
         const tripData = await tripService.getTrips()
@@ -41,11 +50,13 @@ export default function Dashboard() {
 
             const nearest = sortedActive[0]
             if (nearest) {
+              setWeatherLoading(true)
+              setWeatherError(null)
               try {
                 const lat = nearest.coordinates?.lat
                 const lng = nearest.coordinates?.lng
                 const loc = nearest.location || nearest.name
-                const wRes = await campsiteService.getWeather(lat, lng, loc)
+                const wRes = await weatherService.getWeather(lat, lng, loc)
                 if (wRes.success && wRes.weather) {
                   setWeatherData({
                     ...wRes.weather,
@@ -53,11 +64,15 @@ export default function Dashboard() {
                     tripLocation: nearest.location,
                   })
                 } else {
+                  setWeatherError(wRes.message || 'Weather unavailable')
                   setWeatherData(null)
                 }
               } catch (wErr) {
                 console.error('Failed to load weather for nearest trip:', wErr)
+                setWeatherError('Failed to fetch weather')
                 setWeatherData(null)
+              } finally {
+                setWeatherLoading(false)
               }
             }
           } else {
@@ -115,7 +130,7 @@ export default function Dashboard() {
         <div className="dashboard-page">
           <section className="dashboard-welcome">
             <div>
-              <h2>Good morning, {userName} <span>☀</span></h2>
+              <h2>{greeting}, {userName}</h2>
               <p>You have {activeTripsCount} active camping trip{activeTripsCount !== 1 ? 's' : ''}.</p>
             </div>
             <p className="next-trip">
@@ -126,62 +141,99 @@ export default function Dashboard() {
           </section>
 
           <section className="stats-grid">
-            <StatCard icon={<FaRegCompass />} label="Active Trips" value={String(activeTripsCount)} detail="Upcoming & Planning" />
+            <StatCard icon={<FaRegCompass />} label="Active Trips" value={String(activeTripsCount)} detail="Upcoming & Ongoing" />
             <StatCard icon={<FaUsers />} label="Participants" value={String(totalParticipants)} detail="across active trips" tone="blue" />
             <StatCard icon={<FaRegListAlt />} label="Checklist Done" value={`${checklistStats.donePct}%`} detail="Items completed" tone="peach" />
             <StatCard icon={<FaCheckCircle />} label="Shared Equipment" value={String(checklistStats.sharedEq)} detail="Assigned gear" tone="yellow" />
           </section>
 
-          <section className={`dashboard-grid ${activeTrips.length === 0 || !weatherData ? 'no-weather' : ''}`}>
-            {activeTrips.length > 0 && weatherData && (
-              <article className="weather-card">
-                <div className="weather-top">
-                  <span>{weatherData.tripLocation || weatherData.name || 'Camping Location'}</span>
-                  <FaCloudSun />
-                </div>
-                <strong>
-                  {weatherData.temp}<sup>°</sup><small>C</small>
-                </strong>
-                <p className="capitalize">{weatherData.condition} · {weatherData.tripName || 'Nearest trip'}</p>
-                <div className="weather-metrics">
-                  <span>☔ <b>{weatherData.rainProbability || 0}%</b><small>Rain</small></span>
-                  <span>↗ <b>{weatherData.windSpeed}</b><small>km/h Wind</small></span>
-                  <span>💧 <b>{weatherData.humidity}%</b><small>Humidity</small></span>
-                </div>
-                {weatherData.forecast && weatherData.forecast.length > 0 && (
-                  <div className="forecast-row">
-                    {weatherData.forecast.map((item) => (
-                      <span key={item.day}>
-                        <small>{item.day}</small>
-                        <b>{item.condition === 'Clear' ? '☀' : item.condition === 'Rain' ? '🌧' : '🌤'}</b>
-                        <b>{item.temp}°</b>
-                      </span>
-                    ))}
-                  </div>
+          <section className={`dashboard-grid ${activeTrips.length === 0 || (!weatherData && !weatherLoading && !weatherError) ? 'no-weather' : ''}`}>
+            {activeTrips.length > 0 && (
+              <>
+                {weatherLoading && (
+                  <article className="weather-card animate-pulse">
+                    <div className="weather-top">
+                      <span className="h-4 bg-emerald-800/40 rounded w-28"></span>
+                      <FaCloudSun className="text-emerald-700 opacity-50" />
+                    </div>
+                    <strong className="text-2xl opacity-50">--<sup>°</sup><small>C</small></strong>
+                    <p className="text-xs text-gray-400">Loading trip weather...</p>
+                  </article>
                 )}
-              </article>
+
+                {!weatherLoading && weatherError && (
+                  <article className="weather-card border border-amber-900/30">
+                    <div className="weather-top">
+                      <span className="text-xs font-semibold text-amber-200">Weather Notice</span>
+                      <FaExclamationTriangle className="text-amber-400" />
+                    </div>
+                    <p className="text-xs text-gray-300 mt-2">{weatherError}</p>
+                  </article>
+                )}
+
+                {!weatherLoading && weatherData && (
+                  <article className="weather-card">
+                    <div className="weather-top">
+                      <span>{weatherData.tripLocation || weatherData.name || 'Camping Location'}</span>
+                      <WeatherIcon condition={weatherData.condition} className="text-amber-300 text-lg" />
+                    </div>
+                    <strong>
+                      {weatherData.temp}<sup>°</sup><small>C</small>
+                    </strong>
+                    <p className="capitalize">{weatherData.description || weatherData.condition} · {weatherData.tripName || 'Nearest trip'}</p>
+                    <div className="weather-metrics">
+                      <span><FaUmbrella className="inline mr-1 text-emerald-400" /> <b>{weatherData.rainProbability || 0}%</b><small>Rain Chance</small></span>
+                      <span><FaWind className="inline mr-1 text-emerald-400" /> <b>{weatherData.windSpeed}</b><small>km/h Wind</small></span>
+                      <span><FaTint className="inline mr-1 text-emerald-400" /> <b>{weatherData.humidity}%</b><small>Humidity</small></span>
+                    </div>
+                    {weatherData.forecast && weatherData.forecast.length > 0 && (
+                      <div className="forecast-row">
+                        {weatherData.forecast.map((item) => (
+                          <span key={item.day} className="flex flex-col items-center">
+                            <small>{item.day}</small>
+                            <WeatherIcon condition={item.condition} className="my-1 text-sm text-amber-300" />
+                            <b>{item.temp}°</b>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </article>
+                )}
+              </>
             )}
 
-            <section className="upcoming-panel">
-              <div className="panel-heading">
+
+            <section className="upcoming-panel bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs space-y-4">
+              <div className="panel-heading flex items-center justify-between">
                 <div>
-                  <h2>Upcoming Trips</h2>
-                  <p>Your active adventures</p>
+                  <h2 className="text-base sm:text-lg font-bold text-gray-900 m-0">Upcoming Trips</h2>
+                  <p className="text-xs text-gray-500 mt-0.5 m-0">Your active adventures</p>
                 </div>
-                <button onClick={() => navigate('/trips')}>View all <span>›</span></button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/trips')}
+                  className="group flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition-all border border-emerald-200/60 cursor-pointer"
+                >
+                  <span>View all</span>
+                  <span className="group-hover:translate-x-0.5 transition-transform text-sm leading-none">›</span>
+                </button>
               </div>
 
               {loading ? (
-                <p className="p-4 text-center text-gray-500">Loading trips...</p>
+                <p className="p-4 text-center text-gray-500 text-xs font-medium">Loading trips...</p>
               ) : activeTrips.length === 0 ? (
-                <div className="empty-trips-card p-6 text-center border border-dashed rounded-xl border-emerald-800/40">
-                  <p className="text-gray-400 mb-3">No active upcoming trips right now.</p>
-                  <button className="primary-button" onClick={() => navigate('/trips/new')}>
+                <div className="empty-trips-card p-6 text-center border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/50 space-y-3">
+                  <p className="text-xs text-gray-500 m-0">No active upcoming trips right now.</p>
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer"
+                    onClick={() => navigate('/trips/new')}
+                  >
                     + Create a New Trip
                   </button>
                 </div>
               ) : (
-                <div className="upcoming-list">
+                <div className="upcoming-list space-y-3">
                   {activeTrips.map((trip) => (
                     <UpcomingTrip key={trip._id || trip.id || trip.name} trip={trip} />
                   ))}

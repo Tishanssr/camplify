@@ -14,21 +14,26 @@ import TripDetail from './pages/trip-detail'
 import CreateTrip from './pages/create-trip'
 import CampsiteDetail from './pages/campsite-detail'
 import Profile from './pages/profile'
+import PublicProfile from './pages/PublicProfile'
 import Invitation from './pages/invitation'
-import { ProtectedRoute, PublicOnlyRoute } from './components/auth/ProtectedRoute'
+import AdminCampsites from './pages/admin-campsites'
+import AdminRoute from './components/AdminRoute'
+import { ProtectedRoute, PublicOnlyRoute, UserOnlyRoute } from './components/auth/ProtectedRoute'
 
 const App = () => {
   return (
     <Routes>
-      {/* Public Pages (accessible by anyone) */}
-      <Route path="/" element={<Home />} />
-      <Route path="/home" element={<Home />} />
-      <Route path="/explore" element={<Explore />} />
-      <Route path="/explore/:campsiteId" element={<CampsiteDetail />} />
-      <Route path="/pricing" element={<Pricing />} />
-      <Route path="/invite/:inviteCode" element={<Invitation />} />
+      {/* Public User Pages (guests & regular users only, admins redirected to portal) */}
+      <Route element={<UserOnlyRoute />}>
+        <Route path="/" element={<Home />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/explore" element={<Explore />} />
+        <Route path="/explore/:campsiteId" element={<CampsiteDetail />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/invite/:inviteCode" element={<Invitation />} />
+      </Route>
 
-      {/* Guest Only Pages (redirects to /dashboard if already logged in) */}
+      {/* Guest Only Pages (redirects to /dashboard or /admin/campsites if already logged in) */}
       <Route element={<PublicOnlyRoute />}>
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
@@ -39,7 +44,7 @@ const App = () => {
       {/* Verification Page */}
       <Route path="/verify-email" element={<VerifyEmail />} />
 
-      {/* Protected Pages (redirects to /login if NOT logged in) */}
+      {/* Protected Pages (redirects to /login if NOT logged in, redirects to /admin/campsites if admin) */}
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/trips" element={<Trips />} />
@@ -47,10 +52,18 @@ const App = () => {
         <Route path="/trips/:tripId/:tab?" element={<TripDetail />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/profile/:userId" element={<PublicProfile />} />
+      </Route>
+
+      {/* Admin Pages (requires logged in + admin role) */}
+      <Route element={<AdminRoute />}>
+        <Route path="/admin/campsites" element={<AdminCampsites />} />
       </Route>
 
       {/* Catch-all Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route element={<UserOnlyRoute />}>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
     </Routes>
   )
 }

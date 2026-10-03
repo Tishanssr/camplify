@@ -12,25 +12,27 @@ export default function VerifyEmail() {
   const { fetchUserData } = useAuth()
   const [otp, setOtp] = useState('')
   const [message, setMessage] = useState(location.state?.message || '')
+  const [messageType, setMessageType] = useState(location.state?.type || '')
   const [verified, setVerified] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const sendCode = async () => {
-    setLoading(true); setMessage('')
+    setLoading(true); setMessage(''); setMessageType('')
     try {
       const { data } = await api.post('/auth/send-verify-otp')
       if (!data.success) throw new Error(data.message)
       setMessage(data.message)
-    } catch (error) { setMessage(error.response?.data?.message || error.message) } finally { setLoading(false) }
+      setMessageType('success')
+    } catch (error) { setMessage(error.response?.data?.message || error.message); setMessageType('error') } finally { setLoading(false) }
   }
   const submit = async (event) => {
-    event.preventDefault(); setLoading(true); setMessage('')
+    event.preventDefault(); setLoading(true); setMessage(''); setMessageType('')
     try {
       const { data } = await api.post('/auth/verify-account', { otp })
       if (!data.success) throw new Error(data.message)
-      setVerified(true); setMessage(data.message)
+      setVerified(true); setMessage(data.message); setMessageType('success')
       if (fetchUserData) await fetchUserData()
-    } catch (error) { setMessage(error.response?.data?.message || error.message) } finally { setLoading(false) }
+    } catch (error) { setMessage(error.response?.data?.message || error.message); setMessageType('error') } finally { setLoading(false) }
   }
 
   return (
@@ -40,7 +42,7 @@ export default function VerifyEmail() {
       <p className="auth-subtitle">Confirm your account with the six-digit code from your email.</p>
       <form className="auth-form" onSubmit={submit}>
         <AuthInput id="otp" label="Verification code" inputMode="numeric" value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="123456" required />
-        <AuthMessage message={message} />
+        <AuthMessage message={message} type={messageType} />
         {verified ? <Link className="primary-button" to="/dashboard">Continue <FaArrowRight /></Link> : <button className="primary-button" disabled={loading}>{loading ? 'Verifying…' : <>Verify account <FaArrowRight /></>}</button>}
       </form>
       {!verified && <button type="button" className="text-button" onClick={sendCode} disabled={loading}>Send a new code</button>}

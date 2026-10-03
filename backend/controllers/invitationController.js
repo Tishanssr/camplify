@@ -83,18 +83,31 @@ export const respondInvitation = async (req, res) => {
       }
     }
 
+    // Send notification to Organizer & Inviter
+    const recipientIds = new Set()
     if (invitation.invitedBy) {
-      const notifText = targetStatus === 'accepted'
-        ? `${user.name} accepted your invitation to join ${invitation.trip?.name || 'the trip'}!`
-        : `${user.name} declined the invitation to join ${invitation.trip?.name || 'the trip'}.`
+      recipientIds.add(String(invitation.invitedBy._id || invitation.invitedBy))
+    }
+    const tripObj = invitation.trip || (await tripModel.findById(invitation.trip))
+    if (tripObj && tripObj.organizer) {
+      recipientIds.add(String(tripObj.organizer._id || tripObj.organizer))
+    }
+    recipientIds.delete(String(userID))
 
+    const notifText = targetStatus === 'accepted'
+      ? `${user.name} accepted the invitation to join ${tripObj?.name || 'the trip'}!`
+      : `${user.name} declined the invitation to join ${tripObj?.name || 'the trip'}.`
+
+    for (const recipientId of recipientIds) {
       const notification = new notificationModel({
-        user: invitation.invitedBy,
-        title: targetStatus === 'accepted' ? 'Invitation Accepted 🎉' : 'Invitation Declined',
+        user: recipientId,
+        title: targetStatus === 'accepted' ? 'Invitation Accepted' : 'Invitation Declined',
         text: notifText,
         color: targetStatus === 'accepted' ? 'green' : 'yellow',
+        type: 'invitation_response',
+        relatedId: tripObj?._id || invitation.trip?._id || invitation.trip || null,
       })
-      await notification.save()
+      await notification.save().catch((err) => console.error('Error saving invitation notification:', err))
     }
 
     res.json({
@@ -109,6 +122,71 @@ export const respondInvitation = async (req, res) => {
   }
 }
 
+// Get invitation & trip details by invite code (public/optional auth)
+export const getInviteByCode = async (req, res) => {
+  try {
+    const { code } = req.params
+    const userID = req.userID || null
+
+    const invitation = await invitationModel
+      .findOne({ inviteCode: code })
+      .populate({
+        path: 'trip',
+        populate: { path: 'organizer', select: 'name email' },
+      })
+      .populate('invitedBy', 'name email')
+
+    if (!invitation || !invitation.trip) {
+      return res.json({ success: false, message: 'Invalid or expired invitation link.' })
+    }
+
+    const trip = invitation.trip
+    let currentUserStatus = null
+    let isAlreadyParticipant = false
+
+    if (userID) {
+      const user = await userModel.findById(userID)
+      if (user) {
+        const participant = trip.participants.find(
+          (p) => (p.user && String(p.user) === String(userID)) || (p.email && p.email.toLowerCase() === user.email.toLowerCase())
+        )
+        if (participant) {
+          isAlreadyParticipant = participant.status === 'confirmed'
+          currentUserStatus = participant.status
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      invitation: {
+        _id: invitation._id,
+        inviteCode: invitation.inviteCode,
+        status: invitation.status,
+        email: invitation.email,
+        invitedBy: invitation.invitedBy,
+      },
+      trip: {
+        _id: trip._id,
+        name: trip.name,
+        description: trip.description,
+        location: trip.location,
+        startDate: trip.startDate,
+        endDate: trip.endDate,
+        meetingPoint: trip.meetingPoint,
+        organizer: trip.organizer,
+      },
+      userState: {
+        isLoggedIn: !!userID,
+        isAlreadyParticipant,
+        currentUserStatus,
+      },
+    })
+  } catch (error) {
+    res.json({ success: false, message: error.message })
+  }
+}
+
 // Accept trip via invite code
 export const acceptInviteByCode = async (req, res) => {
   try {
@@ -116,10 +194,18 @@ export const acceptInviteByCode = async (req, res) => {
     const { code } = req.params
 
     const user = await userModel.findById(userID)
+    if (!user) {
+      return res.json({ success: false, message: 'User not found. Please log in.' })
+    }
+
     const invitation = await invitationModel.findOne({ inviteCode: code }).populate('trip')
 
     if (!invitation) {
       return res.json({ success: false, message: 'Invalid or expired invite link.' })
+    }
+
+    if (invitation.email.toLowerCase() !== user.email.toLowerCase()) {
+      return res.json({ success: false, message: 'This invitation was not sent to your email address.' })
     }
 
     invitation.status = 'accepted'
@@ -127,8 +213,11 @@ export const acceptInviteByCode = async (req, res) => {
 
     const trip = await tripModel.findById(invitation.trip._id || invitation.trip)
     if (trip) {
-      const existing = trip.participants.find((p) => String(p.user) === String(userID))
+      const existing = trip.participants.find(
+        (p) => (p.user && String(p.user) === String(userID)) || (p.email && p.email.toLowerCase() === user.email.toLowerCase())
+      )
       if (existing) {
+        existing.user = userID
         existing.status = 'confirmed'
       } else {
         trip.participants.push({
@@ -139,6 +228,30 @@ export const acceptInviteByCode = async (req, res) => {
         })
       }
       await trip.save()
+
+      // Send notification to Organizer & Inviter
+      const recipientIds = new Set()
+      if (invitation.invitedBy) {
+        recipientIds.add(String(invitation.invitedBy._id || invitation.invitedBy))
+      }
+      if (trip.organizer) {
+        recipientIds.add(String(trip.organizer._id || trip.organizer))
+      }
+      recipientIds.delete(String(userID))
+
+      const notifText = `${user.name} accepted the invitation to join ${trip.name}!`
+
+      for (const recipientId of recipientIds) {
+        const notification = new notificationModel({
+          user: recipientId,
+          title: 'Invitation Accepted',
+          text: notifText,
+          color: 'green',
+          type: 'invitation_response',
+          relatedId: trip._id,
+        })
+        await notification.save().catch((err) => console.error('Error saving invitation notification:', err))
+      }
     }
 
     res.json({

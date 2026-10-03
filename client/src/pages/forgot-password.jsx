@@ -9,6 +9,7 @@ import api from '../lib/api'
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
+  const [messageType, setMessageType] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
@@ -16,12 +17,14 @@ export default function ForgotPassword() {
     event.preventDefault()
     setLoading(true)
     setMessage('')
+    setMessageType('')
     try {
       const { data } = await api.post('/auth/send-reset-otp', { email })
       if (!data.success) throw new Error(data.message)
-      navigate(`/reset-password?email=${encodeURIComponent(email)}`, { state: { message: data.message } })
+      navigate(`/reset-password?email=${encodeURIComponent(email)}`, { state: { message: data.message, type: 'success' } })
     } catch (error) {
       setMessage(error.response?.data?.message || error.message || 'Could not send a reset code.')
+      setMessageType('error')
     } finally {
       setLoading(false)
     }
@@ -34,7 +37,7 @@ export default function ForgotPassword() {
       <p className="auth-subtitle">We’ll send a verification code to your email.</p>
       <form className="auth-form" onSubmit={submit}>
         <AuthInput id="email" label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
-        <AuthMessage message={message} />
+        <AuthMessage message={message} type={messageType} />
         <button className="primary-button" disabled={loading}>{loading ? 'Sending…' : <>Send reset code <FaArrowRight /></>}</button>
       </form>
       <p className="switch-copy"><Link to="/login">Back to sign in</Link></p>

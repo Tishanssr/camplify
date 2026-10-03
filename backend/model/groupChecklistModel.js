@@ -15,6 +15,7 @@ const groupChecklistSchema = new mongoose.Schema(
         assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
         assignedName: String,
         quantity: { type: String, default: '1' },
+        description: { type: String, default: '' },
       },
     ],
   },

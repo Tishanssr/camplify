@@ -1,56 +1,61 @@
-import { FaMapMarkerAlt, FaLocationArrow, FaCog } from 'react-icons/fa'
+import { useEffect, useState } from 'react'
+import GeoapifyMap from './GeoapifyMap'
 import { mapConfig } from '../../config/mapConfig'
+import { geoapifyService } from '../../services/geoapifyService'
 
 export default function CampsiteMap({
-  lat = mapConfig.defaultCenter.lat,
-  lng = mapConfig.defaultCenter.lng,
+  lat,
+  lng,
   locationName = 'Campsite Location',
   onSelectLocation,
-  height = '220px',
+  height = '240px',
+  zoom = 12,
 }) {
-  const hasKey = Boolean(mapConfig.apiKey)
+  const [coords, setCoords] = useState(() => {
+    if (typeof lat === 'number' && typeof lng === 'number' && lat !== 0 && lng !== 0) {
+      return { lat, lng }
+    }
+    return null
+  })
+
+  useEffect(() => {
+    if (typeof lat === 'number' && typeof lng === 'number' && lat !== 0 && lng !== 0) {
+      setCoords({ lat, lng })
+      return
+    }
+
+    // Dynamic Geoapify geocoding lookup if coordinates are missing or invalid
+    if (locationName && locationName !== 'Campsite Location') {
+      let isMounted = true
+      geoapifyService.autocomplete(locationName).then((results) => {
+        if (isMounted && results && results.length > 0 && results[0].lat && results[0].lng) {
+          setCoords({ lat: results[0].lat, lng: results[0].lng })
+        }
+      })
+      return () => { isMounted = false }
+    }
+  }, [lat, lng, locationName])
+
+  const markerLat = coords?.lat || mapConfig.defaultCenter[0]
+  const markerLng = coords?.lng || mapConfig.defaultCenter[1]
+
+  const markers = [
+    {
+      id: 'campsite-location',
+      title: locationName,
+      lat: markerLat,
+      lng: markerLng,
+      type: 'campsite',
+    },
+  ]
 
   return (
-    <div
-      className="relative rounded-2xl overflow-hidden border border-emerald-800/20 bg-emerald-950/40 shadow-inner flex flex-col justify-between p-4"
-      style={{ height }}
-    >
-      {/* Background Map Graphic Pattern */}
-      <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(#347d3d_1px,transparent_1px)] [background-size:16px_16px]" />
-
-      <div className="relative z-10 flex items-center justify-between">
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-900/60 text-emerald-300 text-[10px] font-bold border border-emerald-700/40">
-          <FaMapMarkerAlt /> {locationName}
-        </span>
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${hasKey ? 'bg-emerald-500 text-white' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'}`}>
-          {hasKey ? 'Map API Connected' : 'Map API Plug & Play Ready'}
-        </span>
-      </div>
-
-      <div className="relative z-10 text-center space-y-1 my-auto">
-        <div className="w-10 h-10 mx-auto rounded-full bg-emerald-700/40 text-emerald-300 flex items-center justify-center text-lg animate-bounce">
-          <FaMapMarkerAlt />
-        </div>
-        <p className="text-xs font-bold text-gray-200">{locationName}</p>
-        <p className="text-[11px] font-mono text-emerald-400">
-          Lat: {lat.toFixed(4)}° N · Lng: {lng.toFixed(4)}° E
-        </p>
-      </div>
-
-      <div className="relative z-10 flex items-center justify-between text-[10px] text-gray-400 pt-2 border-t border-emerald-900/40">
-        <span className="flex items-center gap-1">
-          <FaLocationArrow className="text-emerald-500" /> Sri Lanka Region
-        </span>
-        {onSelectLocation && (
-          <button
-            type="button"
-            className="text-emerald-300 font-bold hover:underline"
-            onClick={() => onSelectLocation({ lat, lng, locationName })}
-          >
-            Pick Location →
-          </button>
-        )}
-      </div>
-    </div>
+    <GeoapifyMap
+      center={[markerLat, markerLng]}
+      zoom={zoom}
+      height={height}
+      markers={markers}
+      onMapClick={onSelectLocation}
+    />
   )
 }

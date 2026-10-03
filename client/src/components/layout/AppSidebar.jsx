@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { FaCampground, FaRegBell, FaRegCompass, FaRegMap, FaRegUser } from 'react-icons/fa'
-import { FiChevronLeft, FiChevronRight, FiCreditCard, FiGrid, FiLogOut, FiMoreVertical, FiUser } from 'react-icons/fi'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { FaRegBell, FaRegCompass, FaRegMap } from 'react-icons/fa'
+import { FiChevronLeft, FiChevronRight, FiCreditCard, FiGrid, FiShield } from 'react-icons/fi'
+import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import logo from '../../assets/camplify_ico.svg'
 
@@ -14,24 +14,17 @@ const navigation = [
 
 export default function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
+  const { isAdmin } = useAuth()
 
-  const handleLogout = async (e) => {
-    e.stopPropagation()
-    e.preventDefault()
-    setMenuOpen(false)
-    await logout()
-    navigate('/login')
-  }
-
-  const userName = user?.name || 'No found user'
+  const adminNavigation = [
+    { label: 'Campsite Portal', to: '/admin/campsites', icon: FiShield },
+  ]
+  const navItems = isAdmin ? adminNavigation : navigation
 
   return (
     <aside className={`app-sidebar ${collapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-top flex items-center justify-between">
-        <Link className="app-logo flex items-center" to="/dashboard" aria-label="Camplify Dashboard">
+        <Link className="app-logo flex items-center" to={isAdmin ? "/admin/campsites" : "/dashboard"} aria-label="Camplify">
           <span className="logo-icon"><img src={logo} alt="Camplify" /></span>
         </Link>
         <button
@@ -43,9 +36,9 @@ export default function AppSidebar() {
         </button>
       </div>
 
-      {!collapsed && <p className="side-label">Navigation</p>}
+      {!collapsed && <p className="side-label">{isAdmin ? "Admin Controls" : "Navigation"}</p>}
       <nav className="side-nav">
-        {navigation.map(({ label, to, icon: Icon, count }) => (
+        {navItems.map(({ label, to, icon: Icon, count }) => (
           <NavLink
             key={label}
             to={to}
@@ -57,54 +50,14 @@ export default function AppSidebar() {
             {!collapsed && count && <b>{count}</b>}
           </NavLink>
         ))}
-        <NavLink to="/pricing" className="side-link pro-link" title={collapsed ? "Go Pro" : undefined}>
-          <FiCreditCard />
-          {!collapsed && <span>Go Pro</span>}
-          {!collapsed && <span>☀</span>}
-        </NavLink>
-      </nav>
-
-      <div className="sidebar-profile-container relative mt-auto">
-        <div className="sidebar-profile cursor-pointer" onClick={() => setMenuOpen(!menuOpen)}>
-          <span className="profile-avatar"><FaRegUser /></span>
-          {!collapsed && (
-            <span>
-              <b>{userName}</b>
-              <small>Trail Explorer</small>
-            </span>
-          )}
-          <button
-            type="button"
-            className="menu-three-dots ml-auto text-gray-400 hover:text-emerald-700"
-            aria-label="User menu"
-            onClick={(e) => {
-              e.stopPropagation()
-              setMenuOpen(!menuOpen)
-            }}
-          >
-            <FiMoreVertical />
-          </button>
-        </div>
-
-        {menuOpen && (
-          <div className="user-dropdown-menu absolute bottom-14 right-2 w-48 bg-white dark:bg-emerald-950 border border-emerald-900/20 shadow-xl rounded-xl p-1 z-50">
-            <Link
-              to="/profile"
-              className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-emerald-50 rounded-lg"
-              onClick={() => setMenuOpen(false)}
-            >
-              <FiUser /> View Profile
-            </Link>
-            <button
-              type="button"
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg text-left"
-              onClick={handleLogout}
-            >
-              <FiLogOut /> Log Out
-            </button>
-          </div>
+        {!isAdmin && (
+          <NavLink to="/pricing" className="side-link pro-link" title={collapsed ? "Go Pro" : undefined}>
+            <FiCreditCard />
+            {!collapsed && <span>Go Pro</span>}
+            {!collapsed && <span>☀</span>}
+          </NavLink>
         )}
-      </div>
+      </nav>
     </aside>
   )
 }

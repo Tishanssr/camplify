@@ -1,46 +1,37 @@
-// Campsite location preset coordinates
-const locationMap = {
-  yahangala: { lat: 7.425, lon: 80.789, name: 'Yahangala Ground' },
-  wangedigala: { lat: 6.782, lon: 80.841, name: 'Wangedigala Peak' },
-  nuwaragala: { lat: 7.452, lon: 81.564, name: 'Nuwaragala Site' },
-  knuckles: { lat: 7.375, lon: 80.75, name: 'Knuckles Range' },
-  horton: { lat: 6.802, lon: 80.803, name: 'Horton Plains' },
-  ella: { lat: 6.858, lon: 81.046, name: 'Ella Rock' },
-  kandy: { lat: 7.29, lon: 80.633, name: 'Kandy' },
-  udugumbara: { lat: 7.425, lon: 80.789, name: 'Udugumbara' },
-  kalupahana: { lat: 6.782, lon: 80.841, name: 'Kalupahana' },
-  ampara: { lat: 7.291, lon: 81.672, name: 'Ampara' },
-  nuwara: { lat: 6.949, lon: 80.789, name: 'Nuwara Eliya' },
-}
-
-// Weather & forecast lookup
+// Weather & forecast lookup controller
 export const getWeather = async (req, res) => {
   try {
     const { lat, lon, q, location } = req.query
     const apiKey = process.env.OPENWEATHER_API_KEY
 
-    let targetLat = lat || 7.3
-    let targetLon = lon || 80.8
-    let queryLocation = q || location || ''
-
-    if (queryLocation) {
-      const queryKey = queryLocation.toLowerCase().trim()
-      const matchedKey = Object.keys(locationMap).find((key) => queryKey.includes(key))
-
-      if (matchedKey) {
-        targetLat = locationMap[matchedKey].lat
-        targetLon = locationMap[matchedKey].lon
-        queryLocation = ''
-      }
+    if (!apiKey) {
+      return res.status(500).json({
+        success: false,
+        message: 'OpenWeather API key is not configured on server',
+      })
     }
 
-    let url = `https://api.openweathermap.org/data/2.5/weather?lat=${targetLat}&lon=${targetLon}&appid=${apiKey}&units=metric`
-    let forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${targetLat}&lon=${targetLon}&appid=${apiKey}&units=metric`
+    const hasCoords = lat !== undefined && lon !== undefined && lat !== '' && lon !== '' && !isNaN(Number(lat)) && !isNaN(Number(lon))
+    let queryLocation = (q || location || '').trim()
 
-    if (queryLocation) {
-      url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(queryLocation)},LK&appid=${apiKey}&units=metric`
-      forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(queryLocation)},LK&appid=${apiKey}&units=metric`
+    let url = ''
+    let forecastUrl = ''
+
+    if (hasCoords) {
+      // Priority 1: Use exact latitude & longitude coordinates when provided
+      url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`
+      forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`
+    } else if (queryLocation) {
+      // Priority 2: Use cleaned city name (first part before comma, e.g. "Kurunegala")
+      const cleanCity = queryLocation.split(',')[0].trim()
+      url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(cleanCity)},LK&appid=${apiKey}&units=metric`
+      forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(cleanCity)},LK&appid=${apiKey}&units=metric`
+    } else {
+      // Priority 3: Fallback coordinates (Sri Lanka center)
+      url = `https://api.openweathermap.org/data/2.5/weather?lat=7.8731&lon=80.7718&appid=${apiKey}&units=metric`
+      forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=7.8731&lon=80.7718&appid=${apiKey}&units=metric`
     }
+
 
     const [currentRes, forecastRes] = await Promise.all([
       fetch(url).then((r) => (r.ok ? r.json() : null)).catch(() => null),
@@ -48,9 +39,9 @@ export const getWeather = async (req, res) => {
     ])
 
     if (!currentRes) {
-      return res.json({
+      return res.status(502).json({
         success: false,
-        message: 'Could not fetch weather from OpenWeather API',
+        message: 'Could not fetch current weather from OpenWeather API',
       })
     }
 
@@ -67,23 +58,31 @@ export const getWeather = async (req, res) => {
           date: dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
           temp: Math.round(item.main.temp),
           condition: item.weather[0]?.main || 'Clear',
+          description: item.weather[0]?.description || 'Clear sky',
           icon: item.weather[0]?.icon,
+          rainProbability: Math.round((item.pop || 0) * 100),
         }
       })
 
+    // Compute current rain probability using the nearest forecast item's pop value if available
+    const firstForecastPop = forecastData[0]?.pop !== undefined ? Math.round(forecastData[0].pop * 100) : 0
+
     const weatherPayload = {
-      name: currentData.name || 'Campsite Region',
+      name: currentData.name || queryLocation || 'Campsite Region',
       temp: Math.round(currentData.main?.temp || 0),
       feelsLike: Math.round(currentData.main?.feels_like || 0),
-      condition: currentData.weather?.[0]?.description || 'Clear',
+      condition: currentData.weather?.[0]?.main || 'Clear',
+      description: currentData.weather?.[0]?.description || 'Clear sky',
       humidity: currentData.main?.humidity || 0,
       windSpeed: Math.round((currentData.wind?.speed || 0) * 3.6), // m/s to km/h
-      rainProbability: currentData.clouds?.all || 0,
+      rainProbability: firstForecastPop,
+      clouds: currentData.clouds?.all || 0,
       forecast: dailyForecast,
     }
 
     res.json({ success: true, weather: weatherPayload })
   } catch (error) {
-    res.json({ success: false, message: error.message })
+    res.status(500).json({ success: false, message: error.message })
   }
 }
+

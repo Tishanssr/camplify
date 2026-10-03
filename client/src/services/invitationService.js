@@ -11,6 +11,11 @@ export const invitationService = {
     return response.data
   },
 
+  async getInviteByCode(code) {
+    const response = await api.get(`/invitations/code/${code}`)
+    return response.data
+  },
+
   async acceptByCode(code) {
     const response = await api.post(`/invitations/code/${code}`)
     return response.data

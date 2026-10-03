@@ -40,4 +40,12 @@ export const tripService = {
     const response = await api.post(`/trips/${tripId}/invite`, { email })
     return response.data
   },
+
+  async downloadCampsiteMap(tripId) {
+    const response = await api.get(`/trips/${tripId}/campsite-map`, {
+      responseType: 'blob',
+    })
+    return response.data
+  },
 }
+

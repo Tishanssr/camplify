@@ -25,9 +25,17 @@ const campsiteSchema = new mongoose.Schema(
       type: String,
       default: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=85',
     },
+    images: {
+      type: [String],
+      default: [],
+    },
     coordinates: {
       lat: Number,
       lng: Number,
+    },
+    offlineMapKey: {
+      type: String,
+      default: '',
     },
   },
   { timestamps: true }

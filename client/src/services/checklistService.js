@@ -12,6 +12,11 @@ export const checklistService = {
     return response.data
   },
 
+  async editGroupItem(tripId, itemId, itemData) {
+    const response = await api.put(`/checklists/group/${tripId}/item/${itemId}`, itemData)
+    return response.data
+  },
+
   async toggleGroupItem(tripId, itemId, completed) {
     const response = await api.patch(`/checklists/group/${tripId}/item/${itemId}`, { completed })
     return response.data
