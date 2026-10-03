@@ -162,12 +162,12 @@ export default function Dashboard() {
                 )}
 
                 {!weatherLoading && weatherError && (
-                  <article className="weather-card border border-amber-900/30">
-                    <div className="weather-top">
-                      <span className="text-xs font-semibold text-amber-200">Weather Notice</span>
-                      <FaExclamationTriangle className="text-amber-400" />
+                  <article className="weather-card border border-amber-900/30 min-w-0 max-w-full">
+                    <div className="weather-top flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-amber-200 truncate">Weather Notice</span>
+                      <FaExclamationTriangle className="text-amber-400 shrink-0" />
                     </div>
-                    <p className="text-xs text-gray-300 mt-2">{weatherError}</p>
+                    <p className="text-xs text-gray-300 mt-2 break-words max-w-full m-0">{weatherError}</p>
                   </article>
                 )}
 
