@@ -1242,6 +1242,10 @@ export default function TripDetail() {
   const { subscribeToSSEEvents } = useNotification()
   const navigate = useNavigate()
   const { tripId, tab = 'overview' } = useParams()
+
+  if (tab === 'equipment') {
+    return <Navigate to={`/trips/${tripId}/checklist`} replace />
+  }
   const [inviteModalOpen, setInviteModalOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [emailInput, setEmailInput] = useState('')
@@ -1493,11 +1497,6 @@ export default function TripDetail() {
         />
       </div>
     ),
-    equipment: (
-      <div className="py-6">
-        <Equipment gear={trip.gear} />
-      </div>
-    ),
     participants: (
       <div className="py-6">
         <Participants
@@ -1537,7 +1536,7 @@ export default function TripDetail() {
           onOpenEdit={() => setEditModalOpen(true)}
         />
         <nav className="trip-tabs">
-          {['overview', 'checklist', 'equipment', 'participants'].map((item) => (
+          {['overview', 'checklist', 'participants'].map((item) => (
             <NavLink key={item} to={`/trips/${tripId}/${item}`} className={({ isActive }) => isActive ? 'active' : ''}>
               {item}
             </NavLink>

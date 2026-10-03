@@ -248,10 +248,6 @@ export default function Pricing() {
                     <FaCheck className="text-emerald-600 shrink-0" />
                     <span>Organizer Premium unlocks features for ALL trip members</span>
                   </li>
-                  <li className="flex items-center gap-2.5">
-                    <FaCheck className="text-emerald-600 shrink-0" />
-                    <span>Secure PayHere Sandbox payment integration</span>
-                  </li>
                 </ul>
               </div>
             </div>
