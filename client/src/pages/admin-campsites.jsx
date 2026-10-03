@@ -436,7 +436,7 @@ export default function AdminCampsites() {
                     {/* Coordinates Badge if available */}
                     {site.coordinates?.lat !== undefined && site.coordinates?.lng !== undefined && (
                       <div className="mt-2 text-[10px] text-gray-400 font-mono flex items-center gap-1">
-                        📍 <span>{site.coordinates.lat.toFixed(4)}, {site.coordinates.lng.toFixed(4)}</span>
+                        <span>{site.coordinates.lat.toFixed(4)}, {site.coordinates.lng.toFixed(4)}</span>
                       </div>
                     )}
                   </div>
