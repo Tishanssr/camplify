@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import crypto from 'crypto';
 import userModel from "../model/userModel.js";
 import tripModel from "../model/tripModel.js";
-import transporter from "../config/nodmailer.js";  
+import transporter from "../config/emailService.js";  
 import { validatePassword } from "../utils/validatePassword.js";
 
 // User registration
