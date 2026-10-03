@@ -53,8 +53,8 @@ export default function Dashboard() {
               setWeatherLoading(true)
               setWeatherError(null)
               try {
-                const lat = nearest.coordinates?.lat
-                const lng = nearest.coordinates?.lng
+                const lat = nearest.coordinates?.lat || nearest.campsiteId?.coordinates?.lat
+                const lng = nearest.coordinates?.lng || nearest.campsiteId?.coordinates?.lng
                 const loc = nearest.location || nearest.name
                 const wRes = await weatherService.getWeather(lat, lng, loc)
                 if (wRes.success && wRes.weather) {

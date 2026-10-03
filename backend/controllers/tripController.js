@@ -35,6 +35,7 @@ export const getTrips = async (req, res) => {
       })
       .populate('organizer', 'name email')
       .populate('participants.user', 'name email')
+      .populate('campsiteId', 'name location coordinates images offlineMapKey')
       .sort({ createdAt: -1 })
 
     const cleanedTrips = trips.map((trip) => {
@@ -237,13 +238,21 @@ export const createTrip = async (req, res) => {
       }
     }
 
+    let finalCoordinates = coordinates && typeof coordinates === 'object' && coordinates.lat && coordinates.lng ? coordinates : undefined
+    if (!finalCoordinates && campsiteId && mongoose.Types.ObjectId.isValid(campsiteId)) {
+      const site = await campsiteModel.findById(campsiteId)
+      if (site && site.coordinates && site.coordinates.lat && site.coordinates.lng) {
+        finalCoordinates = { lat: Number(site.coordinates.lat), lng: Number(site.coordinates.lng) }
+      }
+    }
+
     const newTrip = new tripModel({
       organizer: userID,
       campsiteId: campsiteId && mongoose.Types.ObjectId.isValid(campsiteId) ? campsiteId : null,
       name,
       description: description || '',
       location,
-      coordinates: coordinates && typeof coordinates === 'object' && coordinates.lat && coordinates.lng ? coordinates : undefined,
+      coordinates: finalCoordinates,
       startDate: startDate ? new Date(startDate) : new Date(),
       endDate: endDate ? new Date(endDate) : new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
       meetingPoint: meetingPoint || '',

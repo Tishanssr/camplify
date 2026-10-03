@@ -1275,8 +1275,8 @@ export default function TripDetail() {
         setWeatherLoading(true)
         setWeatherError(null)
         try {
-          const lat = data.trip.coordinates?.lat
-          const lng = data.trip.coordinates?.lng
+          const lat = data.trip.coordinates?.lat || data.trip.campsiteId?.coordinates?.lat
+          const lng = data.trip.coordinates?.lng || data.trip.campsiteId?.coordinates?.lng
           const wRes = await weatherService.getWeather(lat, lng, data.trip.location)
           if (wRes.success && wRes.weather) {
             setWeather(wRes.weather)
