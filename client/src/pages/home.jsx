@@ -72,23 +72,23 @@ export default function Home() {
   const faqs = [
     {
       q: 'Is Camplify free to use?',
-      a: 'Yes! Camplify offers a free forever plan with full access to campsite discovery, trip creation, and collaborative gear checklists. Pro features are available for advanced offline map downloads.',
+      a: 'Yes! Camplify offers a free plan with access to campsite discovery, trip creation, and collaborative gear checklists. Pro features and offline map downloads are available with a Premium upgrade.',
     },
     {
       q: 'Does Camplify work without an internet connection?',
-      a: 'Absolutely. You can download full trip packages—including interactive trail maps, waypoints, itineraries, and gear checklists—before heading out into backcountry zero-signal areas.',
+      a: 'With Camplify Premium, you can download offline PDF campsite maps before heading out into Sri Lanka\'s backcountry and zero-signal wilderness areas.',
     },
     {
       q: 'How does the weather forecasting work?',
-      a: 'Camplify pulls hyperlocal weather data accurate to within half a mile of your specific campsite, delivering 14-day forecasts and automated storm alerts directly to your trip dashboard.',
+      a: 'Camplify integrates with OpenWeatherMap to provide real-time weather conditions and 5-day forecasts tailored to your specific campsite coordinates.',
     },
     {
-      q: 'Can I share trips with people who don\'t have the app?',
-      a: 'Yes, you can generate shareable web links or email invitations so trip members can view schedules, sign up for gear, and RSVP without needing to download anything.',
+      q: 'Can I invite friends to join my camping trip?',
+      a: 'Yes! Simply invite your friends via email. They receive a unique invitation link to join your trip, view meeting details, and claim gear checklist items.',
     },
     {
       q: 'What camping locations are covered?',
-      a: 'Camplify features 85,000+ curated campsites, national parks, state reserves, and backcountry wilderness locations across North America, Sri Lanka, and worldwide.',
+      a: 'Camplify features a curated directory of Sri Lanka\'s best campsites, national park edges, mountain peaks, and riverbank camping grounds.',
     },
   ]
 
@@ -223,7 +223,7 @@ export default function Home() {
           </h1>
 
           <p className="max-w-2xl mx-auto text-sm sm:text-base text-[#52665A] font-medium leading-relaxed">
-            Camplify brings together real-time hyperlocal weather, interactive map routes, group participant RSVPs, gear checklists, and smart itineraries — built for every outdoor adventure.
+            Sri Lanka's collaborative camping trip planner. Coordinate trip locations, live weather, interactive map routes, group gear checklists, and real-time updates in one seamless platform.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
@@ -251,7 +251,7 @@ export default function Home() {
             Built to make group trips simple & stress-free
           </h2>
           <p className="text-xs sm:text-sm text-[#52665A] max-w-2xl">
-            From quick weekend getaways to multi-day wilderness treks, Camplify keeps your entire team on the same page.
+            From quick weekend getaways in Ella to multi-day wilderness treks in Knuckles, Camplify keeps your entire crew organized and synced.
           </p>
         </div>
 
@@ -261,9 +261,9 @@ export default function Home() {
               <FaMapMarkerAlt />
             </div>
             <div className="space-y-1.5">
-              <h3 className="text-base font-bold text-[#123D28]">Campsite Discovery</h3>
+              <h3 className="text-base font-bold text-[#123D28]">Campsite Directory</h3>
               <p className="text-xs text-[#52665A] leading-relaxed">
-                Explore 85,000+ curated campsites, national parks, and reserves with photos, amenities, permit info, and GPS coordinates.
+                Explore curated Sri Lankan campsites with location maps, available amenities, contact details, and downloadable offline guides.
               </p>
             </div>
           </div>
@@ -273,9 +273,9 @@ export default function Home() {
               <FaCloudSun />
             </div>
             <div className="space-y-1.5">
-              <h3 className="text-base font-bold text-[#123D28]">Hyperlocal Weather</h3>
+              <h3 className="text-base font-bold text-[#123D28]">Live Weather Forecasts</h3>
               <p className="text-xs text-[#52665A] leading-relaxed">
-                14-day forecasts tailored to your exact trail coordinates. Get instant rain, wind, and temperature alerts before heading out.
+                Get real-time weather data and 5-day forecasts for your destination powered by OpenWeatherMap so you can pack for any condition.
               </p>
             </div>
           </div>
@@ -285,9 +285,9 @@ export default function Home() {
               <FaUsers />
             </div>
             <div className="space-y-1.5">
-              <h3 className="text-base font-bold text-[#123D28]">Group RSVP & Invites</h3>
+              <h3 className="text-base font-bold text-[#123D28]">Group Email Invites</h3>
               <p className="text-xs text-[#52665A] leading-relaxed">
-                Invite friends via shareable web links or email invitations. Track RSVPs, member roles, and contact info in one place.
+                Invite fellow campers via email with instant invite links. Manage participant RSVPs and keep team details centralized.
               </p>
             </div>
           </div>
@@ -297,9 +297,9 @@ export default function Home() {
               <FaShoppingBag />
             </div>
             <div className="space-y-1.5">
-              <h3 className="text-base font-bold text-[#123D28]">Collaborative Gear Lists</h3>
+              <h3 className="text-base font-bold text-[#123D28]">Collaborative Gear Checklist</h3>
               <p className="text-xs text-[#52665A] leading-relaxed">
-                Assign gear items across group members so no one double-packs or forgets essential safety equipment.
+                Shared gear list for every trip. Assign tents, stoves, and supplies to members or let participants claim items so nothing is left behind.
               </p>
             </div>
           </div>
@@ -309,9 +309,9 @@ export default function Home() {
               <FaCalendarAlt />
             </div>
             <div className="space-y-1.5">
-              <h3 className="text-base font-bold text-[#123D28]">Smart Itineraries</h3>
+              <h3 className="text-base font-bold text-[#123D28]">Trip Coordination</h3>
               <p className="text-xs text-[#52665A] leading-relaxed">
-                Create structured day-by-day schedules for camp setups, trail hikes, meals, and group departures.
+                Set meeting points, departure times, and trip schedules. Real-time live notifications keep everyone updated on changes.
               </p>
             </div>
           </div>
@@ -321,9 +321,9 @@ export default function Home() {
               <FaCompass />
             </div>
             <div className="space-y-1.5">
-              <h3 className="text-base font-bold text-[#123D28]">Offline Trail Maps</h3>
+              <h3 className="text-base font-bold text-[#123D28]">Offline Campsite Maps</h3>
               <p className="text-xs text-[#52665A] leading-relaxed">
-                Download full trip details, maps, and offline waypoints before stepping into zero-signal wilderness areas.
+                Download PDF campsite maps for off-grid navigation when exploring remote areas with zero mobile reception.
               </p>
             </div>
           </div>
@@ -336,13 +336,13 @@ export default function Home() {
           <div className="lg:col-span-6 space-y-4">
             <p className="text-xs font-bold tracking-widest text-[#35C96B] uppercase">ABOUT CAMPLIFY</p>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-[#123D28] tracking-tight leading-tight">
-              Empowering adventurers to explore with confidence
+              Empowering Sri Lankan adventurers to explore with confidence
             </h2>
             <p className="text-xs sm:text-sm text-[#52665A] leading-relaxed">
-              Camplify was born out of a passion for the outdoors and a mission to make group trip planning effortless. We bring together real-time hyperlocal weather, curated campsite locations, collaborative gear checklists, and offline navigation into one unified experience.
+              Camplify was built to solve the hassle of organizing group camping trips across Sri Lanka. We combine interactive maps, OpenWeather forecasts, curated campsites, and shared gear checklists into one unified platform.
             </p>
             <p className="text-xs sm:text-sm text-[#52665A] leading-relaxed">
-              Whether you are planning a weekend car trip with family or leading a multi-day backcountry trek, Camplify keeps your entire crew organized every step of the way.
+              Whether you are planning a weekend river camp with friends or leading a mountain trek, Camplify keeps your entire group aligned in real time.
             </p>
           </div>
 
@@ -351,9 +351,9 @@ export default function Home() {
               <div className="w-9 h-9 rounded-xl bg-[#EAF8EF] text-[#35C96B] flex items-center justify-center font-bold text-sm">
                 <FaRocket />
               </div>
-              <h4 className="text-xs font-bold text-[#123D28]">Our Story</h4>
+              <h4 className="text-xs font-bold text-[#123D28]">Our Mission</h4>
               <p className="text-[11px] text-[#52665A]">
-                Built by outdoor enthusiasts tired of juggling endless group chats and spreadsheet lists.
+                Built by local outdoor enthusiasts tired of messy group messages and forgotten camping equipment.
               </p>
             </div>
 
@@ -361,9 +361,9 @@ export default function Home() {
               <div className="w-9 h-9 rounded-xl bg-[#EAF8EF] text-[#35C96B] flex items-center justify-center font-bold text-sm">
                 <FaGlobe />
               </div>
-              <h4 className="text-xs font-bold text-[#123D28]">Global Reach</h4>
+              <h4 className="text-xs font-bold text-[#123D28]">Island-Wide Spots</h4>
               <p className="text-[11px] text-[#52665A]">
-                Curated campsites, national reserves, and backcountry wilderness routes across 50+ countries.
+                Curated campsite listings, national parks, and scenic outdoor spots across Sri Lanka.
               </p>
             </div>
 
@@ -371,9 +371,9 @@ export default function Home() {
               <div className="w-9 h-9 rounded-xl bg-[#EAF8EF] text-[#35C96B] flex items-center justify-center font-bold text-sm">
                 <FaHandshake />
               </div>
-              <h4 className="text-xs font-bold text-[#123D28]">Community Driven</h4>
+              <h4 className="text-xs font-bold text-[#123D28]">Live Sync</h4>
               <p className="text-[11px] text-[#52665A]">
-                Verified camper reviews, amenity updates, and trail conditions maintained by real adventurers.
+                Real-time updates ensure trip details and gear claims are instantly synced across all members.
               </p>
             </div>
 
@@ -381,9 +381,9 @@ export default function Home() {
               <div className="w-9 h-9 rounded-xl bg-[#EAF8EF] text-[#35C96B] flex items-center justify-center font-bold text-sm">
                 <FaStar />
               </div>
-              <h4 className="text-xs font-bold text-[#123D28]">Free Forever</h4>
+              <h4 className="text-xs font-bold text-[#123D28]">Free & Pro Plans</h4>
               <p className="text-[11px] text-[#52665A]">
-                Core trip planning features are 100% free with no credit card required.
+                Core trip planning is free for everyone, with Pro upgrades unlocking unlimited gear items and offline maps.
               </p>
             </div>
           </div>
@@ -433,7 +433,7 @@ export default function Home() {
               <img src={logo} alt="Camplify" className="h-7 w-auto brightness-200" />
             </Link>
             <p className="text-xs text-white/70 leading-relaxed max-w-sm font-medium">
-              Smart, collaborative trip planning tools for campers, hikers, and outdoor adventurers everywhere.
+              Smart, collaborative trip planning tools for campers, hikers, and outdoor adventurers across Sri Lanka.
             </p>
           </div>
 
@@ -468,7 +468,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto pt-8 flex flex-col sm:flex-row items-center justify-between text-[11px] text-white/60 gap-4 font-medium">
           <p>© {new Date().getFullYear()} Camplify, Inc. All rights reserved.</p>
           <div className="flex items-center gap-6">
-            <span>Built for outdoor enthusiasts</span>
+            <span>Built for Sri Lankan campers</span>
           </div>
         </div>
       </footer>
