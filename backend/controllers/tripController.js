@@ -192,8 +192,16 @@ export const createTrip = async (req, res) => {
     const userID = req.userID
     const { name, description, location, image, coordinates, startDate, endDate, meetingPoint, meetingTime, meetingCoordinates, gear, invitedParticipants, campsiteId } = req.body
 
-    if (!name || !location) {
-      return res.json({ success: false, message: 'Trip name and location are required' })
+    if (!name || !name.trim()) {
+      return res.json({ success: false, message: 'Trip name is required.' })
+    }
+
+    if (!meetingPoint || !meetingPoint.trim()) {
+      return res.json({ success: false, message: 'Meeting Point / Assembly Area is required.' })
+    }
+
+    if (!meetingTime || !meetingTime.trim()) {
+      return res.json({ success: false, message: 'Meeting Time is required.' })
     }
 
     const organizerUser = await userModel.findById(userID)
@@ -240,34 +248,52 @@ export const createTrip = async (req, res) => {
       }
     }
 
-    let finalCampsiteId = campsiteId && mongoose.Types.ObjectId.isValid(campsiteId) ? campsiteId : null
+    let finalCampsiteId = null
+    let finalLocation = ''
+    let finalCoordinates = undefined
     let tripImage = image || null
-    let finalCoordinates = coordinates && typeof coordinates === 'object' && coordinates.lat && coordinates.lng ? coordinates : undefined
 
-    let site = null
-    if (finalCampsiteId) {
-      site = await campsiteModel.findById(finalCampsiteId)
-    } else if (location && typeof location === 'string') {
-      const cleanLoc = location.split('(')[0].trim()
-      site = await campsiteModel.findOne({ name: { $regex: new RegExp(cleanLoc, 'i') } })
-    }
-
-    if (site) {
-      finalCampsiteId = site._id
-      if (!finalCoordinates && site.coordinates?.lat && site.coordinates?.lng) {
-        finalCoordinates = { lat: Number(site.coordinates.lat), lng: Number(site.coordinates.lng) }
+    if (campsiteId && mongoose.Types.ObjectId.isValid(campsiteId)) {
+      const site = await campsiteModel.findById(campsiteId)
+      if (!site) {
+        return res.json({ success: false, message: 'Selected campsite not found.' })
       }
+      if (
+        !site.coordinates ||
+        site.coordinates.lat == null ||
+        site.coordinates.lng == null ||
+        isNaN(Number(site.coordinates.lat)) ||
+        isNaN(Number(site.coordinates.lng))
+      ) {
+        return res.json({
+          success: false,
+          message: 'This campsite does not have a valid location configured. Please contact an administrator.',
+        })
+      }
+
+      finalCampsiteId = site._id
+      finalLocation = site.location ? `${site.name} (${site.location})` : site.name
+      finalCoordinates = { lat: Number(site.coordinates.lat), lng: Number(site.coordinates.lng) }
       if (!tripImage) {
         tripImage = site.images?.[0] || site.image || null
+      }
+    } else {
+      if (!location || !location.trim()) {
+        return res.json({ success: false, message: 'Trip location is required for custom locations.' })
+      }
+      finalCampsiteId = null
+      finalLocation = location.trim()
+      if (coordinates && typeof coordinates === 'object' && coordinates.lat != null && coordinates.lng != null) {
+        finalCoordinates = { lat: Number(coordinates.lat), lng: Number(coordinates.lng) }
       }
     }
 
     const newTrip = new tripModel({
       organizer: userID,
       campsiteId: finalCampsiteId,
-      name,
-      description: description || '',
-      location,
+      name: name.trim(),
+      description: description ? description.trim() : '',
+      location: finalLocation,
       image: tripImage,
       coordinates: finalCoordinates,
       startDate: startDate ? new Date(startDate) : new Date(),

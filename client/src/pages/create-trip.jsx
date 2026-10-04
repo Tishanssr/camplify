@@ -120,11 +120,19 @@ export default function CreateTrip() {
           if (preselectedCampsiteParam) {
             const found = res.campsites.find(c => c.name.toLowerCase().includes(preselectedCampsiteParam.toLowerCase()))
             if (found) {
+              setIsCustomLocation(false)
+              const formattedLoc = found.location ? `${found.name} (${found.location})` : found.name
+              const coords = found.coordinates && found.coordinates.lat != null && found.coordinates.lng != null
+                ? { lat: Number(found.coordinates.lat), lng: Number(found.coordinates.lng) }
+                : null
+
               setForm(prev => ({
                 ...prev,
                 selectedCampsite: found.name,
                 campsiteId: found._id || found.id,
-                location: `${found.name} (${found.location})`,
+                location: formattedLoc,
+                coordinates: coords,
+                name: prev.name.trim() ? prev.name : `${found.name} Trip`,
               }))
             }
           }
@@ -146,27 +154,47 @@ export default function CreateTrip() {
 
   const handleSelectCampsite = (e) => {
     const val = e.target.value
+    setError('')
     if (val === 'CUSTOM') {
       setIsCustomLocation(true)
-      updateField('selectedCampsite', '')
-      updateField('campsiteId', null)
-      updateField('location', '')
+      setForm(prev => ({
+        ...prev,
+        selectedCampsite: '',
+        campsiteId: null,
+        location: '',
+        coordinates: null,
+      }))
+      return
+    }
+
+    if (!val) {
+      setIsCustomLocation(false)
+      setForm(prev => ({
+        ...prev,
+        selectedCampsite: '',
+        campsiteId: null,
+        location: '',
+        coordinates: null,
+      }))
       return
     }
 
     setIsCustomLocation(false)
-    const selectedObj = campsitesList.find(c => c.name === val || c._id === val)
+    const selectedObj = campsitesList.find(c => c.name === val || c._id === val || String(c.id) === val)
     if (selectedObj) {
-      updateField('selectedCampsite', selectedObj.name)
-      updateField('campsiteId', selectedObj._id || selectedObj.id)
-      updateField('location', `${selectedObj.name} (${selectedObj.location})`)
-      if (!form.name.trim()) {
-        updateField('name', `${selectedObj.name} Trip`)
-      }
-    } else {
-      updateField('selectedCampsite', val)
-      updateField('campsiteId', null)
-      updateField('location', val)
+      const formattedLoc = selectedObj.location ? `${selectedObj.name} (${selectedObj.location})` : selectedObj.name
+      const coords = selectedObj.coordinates && selectedObj.coordinates.lat != null && selectedObj.coordinates.lng != null
+        ? { lat: Number(selectedObj.coordinates.lat), lng: Number(selectedObj.coordinates.lng) }
+        : null
+
+      setForm(prev => ({
+        ...prev,
+        selectedCampsite: selectedObj.name,
+        campsiteId: selectedObj._id || selectedObj.id,
+        location: formattedLoc,
+        coordinates: coords,
+        name: prev.name.trim() ? prev.name : `${selectedObj.name} Trip`,
+      }))
     }
   }
 
@@ -252,10 +280,18 @@ export default function CreateTrip() {
       if (!form.name.trim()) return 'Trip name is required'
     }
     if (currentStep === 1) {
-      if (!form.location.trim()) return 'Destination location is required. Select a campsite or type a custom location.'
+      if (!isCustomLocation && form.campsiteId) {
+        if (!form.coordinates || form.coordinates.lat == null || form.coordinates.lng == null) {
+          return 'This campsite does not have a valid location configured. Please contact an administrator.'
+        }
+      } else {
+        if (!form.location.trim()) return 'Destination location is required. Select a campsite or type a custom location.'
+      }
       if (!form.startDate || !form.endDate) return 'Start and End dates are required'
       if (new Date(form.startDate) < new Date(todayStr)) return 'Start date must be today or in the future'
       if (new Date(form.endDate) < new Date(form.startDate)) return 'End date must be after start date'
+      if (!form.meetingPoint || !form.meetingPoint.trim()) return 'Meeting Point / Assembly Area is required'
+      if (!form.meetingTime || !form.meetingTime.trim()) return 'Meeting Time is required'
     }
     return null
   }
@@ -372,7 +408,7 @@ export default function CreateTrip() {
                 <div className="space-y-1.5">
                   <label className="block text-xs font-semibold text-gray-700">Select Destination Campsite</label>
                   <select
-                    value={isCustomLocation ? 'CUSTOM' : form.selectedCampsite}
+                    value={isCustomLocation ? 'CUSTOM' : (form.selectedCampsite || '')}
                     onChange={handleSelectCampsite}
                     className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-xs outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white"
                   >
@@ -386,50 +422,94 @@ export default function CreateTrip() {
                   </select>
                 </div>
 
-                {/* Geoapify Live Location Search Autocomplete */}
-                <div className="space-y-1.5">
-                  <GeoapifyAutocomplete
-                    label="Destination Location / Address *"
-                    value={form.location}
-                    placeholder="Search city, national park, or address via Geoapify..."
-                    onChange={(val) => updateField('location', val)}
-                    onSelect={(place) => {
-                      if (place) {
-                        updateField('location', place.formatted)
-                        if (place.lat && place.lng) {
-                          updateField('coordinates', { lat: place.lat, lng: place.lng })
-                        }
-                      }
-                    }}
-                  />
-                </div>
+                {!isCustomLocation && form.campsiteId ? (
+                  /* Admin-Registered Campsite Location Summary Card (Manual search & pin click hidden) */
+                  <div className="space-y-3 p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-sm font-bold text-emerald-950">{form.selectedCampsite}</h3>
+                        <p className="text-xs text-gray-600 font-medium mt-0.5">{form.location}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectCampsite({ target: { value: 'CUSTOM' } })}
+                        className="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 underline shrink-0 cursor-pointer"
+                      >
+                        Use Custom Location Instead
+                      </button>
+                    </div>
 
-                {/* Interactive Map Pin Selector */}
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-gray-700">Interactive Location Map Pin</label>
-                  <GeoapifyMap
-                    height="280px"
-                    center={form.coordinates?.lat ? [form.coordinates.lat, form.coordinates.lng] : [7.8731, 80.7718]}
-                    zoom={form.coordinates?.lat ? 12 : 8}
-                    onMapClick={({ lat, lng }) => {
-                      updateField('coordinates', { lat, lng })
-                      // Reverse geocode clicked coordinates
-                      geoapifyService.reverseGeocode(lat, lng).then(result => {
-                        if (result?.formatted) {
-                          updateField('location', result.formatted)
-                        }
-                      })
-                    }}
-                    markers={form.coordinates?.lat ? [{
-                      id: 'selected-destination',
-                      title: form.name || 'Trip Destination',
-                      subtitle: form.location,
-                      lat: form.coordinates.lat,
-                      lng: form.coordinates.lng,
-                      type: 'campsite',
-                    }] : []}
-                  />
-                </div>
+                    {form.coordinates?.lat && form.coordinates?.lng ? (
+                      <div className="space-y-1 pt-1">
+                        <p className="text-[11px] font-semibold text-emerald-700 flex items-center gap-1">
+                          📍 Official Coordinates: <strong>{Number(form.coordinates.lat).toFixed(4)}, {Number(form.coordinates.lng).toFixed(4)}</strong>
+                        </p>
+                        <GeoapifyMap
+                          height="220px"
+                          center={[form.coordinates.lat, form.coordinates.lng]}
+                          zoom={13}
+                          markers={[{
+                            id: 'campsite-admin-dest',
+                            title: form.selectedCampsite,
+                            subtitle: form.location,
+                            lat: form.coordinates.lat,
+                            lng: form.coordinates.lng,
+                            type: 'campsite',
+                          }]}
+                        />
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs font-semibold">
+                        ⚠ This campsite does not have a valid location configured. Please contact an administrator.
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* Custom Location Mode: Address Autocomplete & Interactive Map Pin */
+                  <>
+                    <div className="space-y-1.5">
+                      <GeoapifyAutocomplete
+                        label="Destination Location / Address *"
+                        value={form.location}
+                        placeholder="Search city, national park, or address via Geoapify..."
+                        onChange={(val) => updateField('location', val)}
+                        onSelect={(place) => {
+                          if (place) {
+                            updateField('location', place.formatted)
+                            if (place.lat && place.lng) {
+                              updateField('coordinates', { lat: place.lat, lng: place.lng })
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-semibold text-gray-700">Interactive Location Map Pin</label>
+                      <GeoapifyMap
+                        height="280px"
+                        center={form.coordinates?.lat ? [form.coordinates.lat, form.coordinates.lng] : [7.8731, 80.7718]}
+                        zoom={form.coordinates?.lat ? 12 : 8}
+                        onMapClick={({ lat, lng }) => {
+                          updateField('coordinates', { lat, lng })
+                          geoapifyService.reverseGeocode(lat, lng).then(result => {
+                            if (result?.formatted) {
+                              updateField('location', result.formatted)
+                            }
+                          })
+                        }}
+                        markers={form.coordinates?.lat ? [{
+                          id: 'selected-destination',
+                          title: form.name || 'Trip Destination',
+                          subtitle: form.location,
+                          lat: form.coordinates.lat,
+                          lng: form.coordinates.lng,
+                          type: 'campsite',
+                        }] : []}
+                      />
+                    </div>
+                  </>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
@@ -459,7 +539,7 @@ export default function CreateTrip() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="sm:col-span-2 space-y-1.5">
                     <GeoapifyAutocomplete
-                      label="Meeting Point / Assembly Area"
+                      label="Meeting Point / Assembly Area *"
                       value={form.meetingPoint}
                       placeholder="e.g. Colombo Fort Railway Station or Trailhead parking"
                       onChange={(val) => {
@@ -479,9 +559,10 @@ export default function CreateTrip() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-gray-700">Meeting Time</label>
+                    <label className="block text-xs font-semibold text-gray-700">Meeting Time *</label>
                     <input
                       type="time"
+                      required
                       value={form.meetingTime}
                       onChange={(e) => updateField('meetingTime', e.target.value)}
                       className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-xs outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-white"

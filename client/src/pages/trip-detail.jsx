@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FaCheck, FaCheckCircle, FaClock, FaCrown, FaEdit, FaEnvelope, FaExclamationTriangle, FaMapMarkerAlt, FaPaperPlane, FaTimes, FaTint, FaUmbrella, FaUserPlus, FaWind } from 'react-icons/fa'
+import { FaCheck, FaCheckCircle, FaChevronLeft, FaChevronRight, FaClock, FaCrown, FaEdit, FaEnvelope, FaExclamationTriangle, FaMapMarkerAlt, FaPaperPlane, FaTimes, FaTint, FaUmbrella, FaUserPlus, FaWind } from 'react-icons/fa'
 import { Link, NavLink, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import ScreenLayout from '../components/layout/ScreenLayout'
@@ -17,7 +17,38 @@ import { getTripCategory, formatTime12h } from '../utils/dateUtils'
 import { getImageUrl } from '../utils/imageUtils'
 
 function TripHero({ trip, isOrganizer, isConfirmedParticipant, onOpenInvite, onOpenEdit }) {
-  const imageUrl = trip.image || trip.campsiteId?.images?.[0] || trip.campsiteId?.image || 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=85'
+  const photos = (() => {
+    let list = []
+    if (Array.isArray(trip.images) && trip.images.length > 0) {
+      list.push(...trip.images)
+    }
+    if (trip.image) {
+      list.push(trip.image)
+    }
+    if (trip.campsiteId?.images && Array.isArray(trip.campsiteId.images) && trip.campsiteId.images.length > 0) {
+      list.push(...trip.campsiteId.images)
+    }
+    if (trip.campsiteId?.image) {
+      list.push(trip.campsiteId.image)
+    }
+    const unique = Array.from(new Set(list.filter(Boolean)))
+    if (unique.length > 0) return unique
+    return ['https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=85']
+  })()
+
+  const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const currentPhoto = photos[activeImageIndex] || photos[0]
+
+  const handlePrevPhoto = (e) => {
+    e.stopPropagation()
+    setActiveImageIndex((prev) => (prev === 0 ? photos.length - 1 : prev - 1))
+  }
+
+  const handleNextPhoto = (e) => {
+    e.stopPropagation()
+    setActiveImageIndex((prev) => (prev === photos.length - 1 ? 0 : prev + 1))
+  }
+
   const category = getTripCategory(trip)
   const participantCount = trip.participants?.length || 1
   const dateStr = trip.date || (trip.startDate ? `${new Date(trip.startDate).toLocaleDateString()}–${new Date(trip.endDate).toLocaleDateString()}` : 'Dates TBD')
@@ -39,7 +70,39 @@ function TripHero({ trip, isOrganizer, isConfirmedParticipant, onOpenInvite, onO
 
   return (
     <>
-      <section className="trip-hero" style={{ backgroundImage: `linear-gradient(90deg, rgba(4,20,9,.68), rgba(4,20,9,.1)), url(${imageUrl})` }}>
+      <section
+        className="trip-hero transition-all duration-300 relative group overflow-hidden"
+        style={{ backgroundImage: `linear-gradient(0deg, rgba(5,23,10,.75), transparent 60%), linear-gradient(90deg, rgba(4,20,9,.68), rgba(4,20,9,.2)), url(${getImageUrl(currentPhoto)})` }}
+      >
+        {/* Photo Counter Badge */}
+        {photos.length > 1 && (
+          <span className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-white shadow-md z-10">
+            Photo {activeImageIndex + 1} of {photos.length}
+          </span>
+        )}
+
+        {/* Arrow Navigation Buttons */}
+        {photos.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={handlePrevPhoto}
+              aria-label="Previous photo"
+              className="campsite-hero-arrow prev-arrow"
+            >
+              <FaChevronLeft className="text-sm" />
+            </button>
+            <button
+              type="button"
+              onClick={handleNextPhoto}
+              aria-label="Next photo"
+              className="campsite-hero-arrow next-arrow"
+            >
+              <FaChevronRight className="text-sm" />
+            </button>
+          </>
+        )}
+
         <span className={`trip-status ${category}`}>{category}</span>
         <h1>{trip.name}</h1>
         <p>{trip.location} · {dateStr} · {participantCount} participant{participantCount !== 1 ? 's' : ''}</p>
@@ -52,6 +115,25 @@ function TripHero({ trip, isOrganizer, isConfirmedParticipant, onOpenInvite, onO
           {isOrganizer && <button onClick={onOpenInvite}><FaEnvelope /> Invite Campers</button>}
         </div>
       </section>
+
+      {/* Thumbnail Selector Row */}
+      {photos.length > 1 && (
+        <div className="flex items-center gap-2 mt-3 mb-1 overflow-x-auto pb-1 scrollbar-none px-1">
+          {photos.map((url, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => setActiveImageIndex(idx)}
+              className={`relative w-20 h-14 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all cursor-pointer ${
+                activeImageIndex === idx ? 'border-emerald-600 scale-105 shadow-md' : 'border-transparent opacity-60 hover:opacity-100'
+              }`}
+            >
+              <img src={getImageUrl(url)} alt={`${trip.name} photo ${idx + 1}`} className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+
       <section className="trip-stat-row">
         <span><b>{daysUntil}</b><small>Days Until Trip</small><em>{dateStr}</em></span>
         <span><b>{tripDurationDays}</b><small>Trip Duration</small><em>{tripDurationDays === 1 ? '1 Day Adventure' : `${tripDurationDays} Days Adventure`}</em></span>
