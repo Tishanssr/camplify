@@ -16,7 +16,7 @@ import { geoapifyService } from '../services/geoapifyService'
 import { getTripCategory, formatTime12h } from '../utils/dateUtils'
 import { getImageUrl } from '../utils/imageUtils'
 
-function TripHero({ trip, isOrganizer, isConfirmedParticipant, onOpenInvite, onOpenEdit }) {
+function TripHero({ trip, isOrganizer, isConfirmedParticipant, onOpenInvite, onOpenEdit, equipmentCount }) {
   const photos = (() => {
     let list = []
     if (Array.isArray(trip.images) && trip.images.length > 0) {
@@ -138,7 +138,7 @@ function TripHero({ trip, isOrganizer, isConfirmedParticipant, onOpenInvite, onO
         <span><b>{daysUntil}</b><small>Days Until Trip</small><em>{dateStr}</em></span>
         <span><b>{tripDurationDays}</b><small>Trip Duration</small><em>{tripDurationDays === 1 ? '1 Day Adventure' : `${tripDurationDays} Days Adventure`}</em></span>
         <span><b>{participantCount}</b><small>Participants</small><em>Confirmed / Invited</em></span>
-        <span><b>{trip.gear?.length || 7}</b><small>Equipment</small><em>Shared gear items</em></span>
+        <span><b>{equipmentCount ?? (Array.isArray(trip.gear) ? trip.gear.length : 0)}</b><small>Equipment</small><em>Shared gear items</em></span>
       </section>
     </>
   )
@@ -1214,27 +1214,6 @@ function Checklist({ trip, tripId, participants, isOrganizer, isConfirmedPartici
   )
 }
 
-function Equipment({ gear }) {
-  const gearItems = Array.isArray(gear) && gear.length > 0 ? gear : ['4-person tent', 'Sleeping bags ×4', 'Camp stove + fuel', 'First aid kit', 'Water filter']
-
-  return (
-    <section className="equipment-card">
-      <div className="card-title flex items-center justify-between">
-        <h2>Equipment List ({gearItems.length})</h2>
-        <button className="hover:bg-emerald-800 transition-colors">+ Add Item</button>
-      </div>
-      {gearItems.map((item, index) => (
-        <div className="equipment-row" key={index}>
-          <div>
-            <b>{typeof item === 'string' ? item : item.name}</b>
-            <small>Assigned gear item</small>
-          </div>
-          <em className="confirmed">confirmed</em>
-        </div>
-      ))}
-    </section>
-  )
-}
 
 function Participants({ trip, participants, isOrganizer, onOpenInvite, currentUserId }) {
   const participantsList = Array.isArray(participants) && participants.length > 0 ? participants : []
@@ -1336,6 +1315,7 @@ export default function TripDetail() {
   const [weather, setWeather] = useState(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
   const [weatherError, setWeatherError] = useState(null)
+  const [equipmentCount, setEquipmentCount] = useState(0)
 
   const [accessDeniedInfo, setAccessDeniedInfo] = useState(null)
   const [respondingInvite, setRespondingInvite] = useState(false)
@@ -1388,14 +1368,35 @@ export default function TripDetail() {
     }
   }
 
+  const loadEquipmentCount = async () => {
+    if (!tripId) return
+    try {
+      const res = await checklistService.getGroupChecklist(tripId)
+      if (res.success && Array.isArray(res.items)) {
+        setEquipmentCount(res.items.length)
+      } else if (res.success && Array.isArray(res.groups)) {
+        let count = 0
+        res.groups.forEach(g => { if (Array.isArray(g.items)) count += g.items.length })
+        setEquipmentCount(count)
+      }
+    } catch (err) {
+      console.error('Failed to load equipment count:', err)
+    }
+  }
+
   useEffect(() => {
     loadTrip()
+    loadEquipmentCount()
 
-    // Real-time listener for SSE trip updates
+    // Real-time listener for SSE trip and checklist updates
     const unsubscribe = subscribeToSSEEvents((eventName, data) => {
       if (eventName === 'trip_update' && String(data.tripId) === String(tripId)) {
         console.log('[TripDetail] Real-time trip update received, refreshing trip data...')
         loadTrip()
+      }
+      if (eventName === 'checklist_update' && String(data.tripId) === String(tripId)) {
+        console.log('[TripDetail] Real-time checklist update received, refreshing equipment count...')
+        loadEquipmentCount()
       }
     })
 
@@ -1614,6 +1615,7 @@ export default function TripDetail() {
           trip={trip}
           isOrganizer={isOrganizer}
           isConfirmedParticipant={isConfirmedParticipant}
+          equipmentCount={equipmentCount}
           onOpenInvite={() => setInviteModalOpen(true)}
           onOpenEdit={() => setEditModalOpen(true)}
         />

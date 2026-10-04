@@ -311,6 +311,21 @@ export const createTrip = async (req, res) => {
 
     await newTrip.save()
 
+    if (Array.isArray(gear) && gear.length > 0) {
+      const checklistItems = gear.filter(Boolean).map((g) => ({
+        name: typeof g === 'string' ? g : (g.name || String(g)),
+        quantity: '1',
+        done: false,
+      }))
+      if (checklistItems.length > 0) {
+        const newGroupChecklist = new groupChecklistModel({
+          trip: newTrip._id,
+          items: checklistItems,
+        })
+        await newGroupChecklist.save()
+      }
+    }
+
     for (const p of initialParticipants) {
       if (p.role === 'participant') {
         const inviteCode = `${newTrip._id.toString().slice(-6)}-${crypto.randomInt(1000, 10000)}`
