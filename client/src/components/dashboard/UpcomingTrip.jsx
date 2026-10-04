@@ -6,7 +6,7 @@ import { getImageUrl } from '../../utils/imageUtils'
 export default function UpcomingTrip({ trip }) {
   const category = getTripCategory(trip)
   const daysLabel = getDaysLabel(trip)
-  const imageUrl = trip.image || 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=240&q=85'
+  const imageUrl = trip.image || trip.campsiteId?.images?.[0] || trip.campsiteId?.image || 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=240&q=85'
   const dateStr = trip.date || (trip.startDate ? `${new Date(trip.startDate).toLocaleDateString()}–${new Date(trip.endDate).toLocaleDateString()}` : 'TBD')
   const participantCount = trip.participants?.length || trip.people || 1
   const tripId = trip._id || trip.id

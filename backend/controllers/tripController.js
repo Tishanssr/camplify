@@ -35,7 +35,7 @@ export const getTrips = async (req, res) => {
       })
       .populate('organizer', 'name email')
       .populate('participants.user', 'name email')
-      .populate('campsiteId', 'name location coordinates images offlineMapKey')
+      .populate('campsiteId', 'name location coordinates images image offlineMapKey')
       .sort({ createdAt: -1 })
 
     const cleanedTrips = trips.map((trip) => {
@@ -48,6 +48,7 @@ export const getTrips = async (req, res) => {
             String(p.user?._id || p.user) === String(trip.organizer?._id || trip.organizer)
         )
       }
+      tripObj.image = tripObj.image || tripObj.campsiteId?.images?.[0] || tripObj.campsiteId?.image || null
       return tripObj
     })
 
@@ -69,13 +70,13 @@ export const getTripById = async (req, res) => {
         .findById(id)
         .populate('organizer', 'name email isPremium premiumExpiresAt')
         .populate('participants.user', 'name email')
-        .populate('campsiteId', 'name location images offlineMapKey')
+        .populate('campsiteId', 'name location images image offlineMapKey')
     } else {
       trip = await tripModel
         .findOne({ name: new RegExp(id, 'i') })
         .populate('organizer', 'name email isPremium premiumExpiresAt')
         .populate('participants.user', 'name email')
-        .populate('campsiteId', 'name location images offlineMapKey')
+        .populate('campsiteId', 'name location images image offlineMapKey')
     }
 
     if (!trip) {
@@ -174,6 +175,7 @@ export const getTripById = async (req, res) => {
     if (tripObj.campsiteId && tripObj.campsiteId.offlineMapKey !== undefined) {
       delete tripObj.campsiteId.offlineMapKey
     }
+    tripObj.image = tripObj.image || tripObj.campsiteId?.images?.[0] || tripObj.campsiteId?.image || null
     tripObj.organizerIsPremium = organizerIsPremium
     tripObj.campsiteHasOfflineMap = campsiteHasOfflineMap
 
@@ -188,7 +190,7 @@ export const getTripById = async (req, res) => {
 export const createTrip = async (req, res) => {
   try {
     const userID = req.userID
-    const { name, description, location, coordinates, startDate, endDate, meetingPoint, meetingTime, meetingCoordinates, gear, invitedParticipants, campsiteId } = req.body
+    const { name, description, location, image, coordinates, startDate, endDate, meetingPoint, meetingTime, meetingCoordinates, gear, invitedParticipants, campsiteId } = req.body
 
     if (!name || !location) {
       return res.json({ success: false, message: 'Trip name and location are required' })
@@ -238,20 +240,35 @@ export const createTrip = async (req, res) => {
       }
     }
 
+    let finalCampsiteId = campsiteId && mongoose.Types.ObjectId.isValid(campsiteId) ? campsiteId : null
+    let tripImage = image || null
     let finalCoordinates = coordinates && typeof coordinates === 'object' && coordinates.lat && coordinates.lng ? coordinates : undefined
-    if (!finalCoordinates && campsiteId && mongoose.Types.ObjectId.isValid(campsiteId)) {
-      const site = await campsiteModel.findById(campsiteId)
-      if (site && site.coordinates && site.coordinates.lat && site.coordinates.lng) {
+
+    let site = null
+    if (finalCampsiteId) {
+      site = await campsiteModel.findById(finalCampsiteId)
+    } else if (location && typeof location === 'string') {
+      const cleanLoc = location.split('(')[0].trim()
+      site = await campsiteModel.findOne({ name: { $regex: new RegExp(cleanLoc, 'i') } })
+    }
+
+    if (site) {
+      finalCampsiteId = site._id
+      if (!finalCoordinates && site.coordinates?.lat && site.coordinates?.lng) {
         finalCoordinates = { lat: Number(site.coordinates.lat), lng: Number(site.coordinates.lng) }
+      }
+      if (!tripImage) {
+        tripImage = site.images?.[0] || site.image || null
       }
     }
 
     const newTrip = new tripModel({
       organizer: userID,
-      campsiteId: campsiteId && mongoose.Types.ObjectId.isValid(campsiteId) ? campsiteId : null,
+      campsiteId: finalCampsiteId,
       name,
       description: description || '',
       location,
+      image: tripImage,
       coordinates: finalCoordinates,
       startDate: startDate ? new Date(startDate) : new Date(),
       endDate: endDate ? new Date(endDate) : new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),

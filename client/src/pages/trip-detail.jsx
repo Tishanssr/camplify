@@ -17,7 +17,7 @@ import { getTripCategory, formatTime12h } from '../utils/dateUtils'
 import { getImageUrl } from '../utils/imageUtils'
 
 function TripHero({ trip, isOrganizer, isConfirmedParticipant, onOpenInvite, onOpenEdit }) {
-  const imageUrl = trip.image || 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=85'
+  const imageUrl = trip.image || trip.campsiteId?.images?.[0] || trip.campsiteId?.image || 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=85'
   const category = getTripCategory(trip)
   const participantCount = trip.participants?.length || 1
   const dateStr = trip.date || (trip.startDate ? `${new Date(trip.startDate).toLocaleDateString()}–${new Date(trip.endDate).toLocaleDateString()}` : 'Dates TBD')

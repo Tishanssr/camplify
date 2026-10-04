@@ -2,6 +2,7 @@ import invitationModel from '../model/invitationModel.js'
 import tripModel from '../model/tripModel.js'
 import userModel from '../model/userModel.js'
 import notificationModel from '../model/notificationModel.js'
+import campsiteModel from '../model/campsiteModel.js'
 
 // User invitations lookup
 export const getUserInvitations = async (req, res) => {
@@ -132,7 +133,10 @@ export const getInviteByCode = async (req, res) => {
       .findOne({ inviteCode: code })
       .populate({
         path: 'trip',
-        populate: { path: 'organizer', select: 'name email' },
+        populate: [
+          { path: 'organizer', select: 'name email' },
+          { path: 'campsiteId', select: 'image images name location' },
+        ],
       })
       .populate('invitedBy', 'name email')
 
@@ -143,10 +147,12 @@ export const getInviteByCode = async (req, res) => {
     const trip = invitation.trip
     let currentUserStatus = null
     let isAlreadyParticipant = false
+    let currentUserEmail = null
 
     if (userID) {
       const user = await userModel.findById(userID)
       if (user) {
+        currentUserEmail = user.email
         const participant = trip.participants.find(
           (p) => (p.user && String(p.user) === String(userID)) || (p.email && p.email.toLowerCase() === user.email.toLowerCase())
         )
@@ -156,6 +162,8 @@ export const getInviteByCode = async (req, res) => {
         }
       }
     }
+
+    const resolvedImage = trip.image || trip.campsiteId?.images?.[0] || trip.campsiteId?.image || null
 
     res.json({
       success: true,
@@ -175,9 +183,12 @@ export const getInviteByCode = async (req, res) => {
         endDate: trip.endDate,
         meetingPoint: trip.meetingPoint,
         organizer: trip.organizer,
+        campsiteId: trip.campsiteId,
+        image: resolvedImage,
       },
       userState: {
         isLoggedIn: !!userID,
+        currentUserEmail,
         isAlreadyParticipant,
         currentUserStatus,
       },
@@ -204,25 +215,31 @@ export const acceptInviteByCode = async (req, res) => {
       return res.json({ success: false, message: 'Invalid or expired invite link.' })
     }
 
-    if (invitation.email.toLowerCase() !== user.email.toLowerCase()) {
-      return res.json({ success: false, message: 'This invitation was not sent to your email address.' })
-    }
-
     invitation.status = 'accepted'
     await invitation.save()
 
     const trip = await tripModel.findById(invitation.trip._id || invitation.trip)
     if (trip) {
-      const existing = trip.participants.find(
-        (p) => (p.user && String(p.user) === String(userID)) || (p.email && p.email.toLowerCase() === user.email.toLowerCase())
-      )
+      const userEmailLower = user.email.toLowerCase()
+      const inviteEmailLower = (invitation.email || '').toLowerCase()
+
+      // Find existing participant by priority: userID -> currentUser.email -> invitation.email
+      let existing = trip.participants.find((p) => p.user && String(p.user) === String(userID))
+      if (!existing && userEmailLower) {
+        existing = trip.participants.find((p) => p.email && p.email.toLowerCase() === userEmailLower)
+      }
+      if (!existing && inviteEmailLower) {
+        existing = trip.participants.find((p) => p.email && p.email.toLowerCase() === inviteEmailLower)
+      }
+
       if (existing) {
         existing.user = userID
+        existing.email = userEmailLower
         existing.status = 'confirmed'
       } else {
         trip.participants.push({
           user: userID,
-          email: user.email.toLowerCase(),
+          email: userEmailLower,
           role: 'participant',
           status: 'confirmed',
         })

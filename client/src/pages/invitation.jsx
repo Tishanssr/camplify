@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
-import { FaCalendarAlt, FaMapMarkerAlt, FaUsers, FaCheck, FaTimes, FaUserCheck, FaUserPlus } from 'react-icons/fa'
+import { FaCalendarAlt, FaMapMarkerAlt, FaUsers, FaCheck, FaTimes, FaUserCheck, FaUserPlus, FaExclamationTriangle } from 'react-icons/fa'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { invitationService } from '../services/invitationService'
+import { useAuth } from '../context/AuthContext'
 import logo from '../assets/camplify_ico.svg'
 
 export default function Invitation() {
   const { inviteCode } = useParams()
   const navigate = useNavigate()
+  const { logout } = useAuth()
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
@@ -68,6 +70,16 @@ export default function Invitation() {
     }
   }
 
+  const handleSwitchAccount = async () => {
+    try {
+      if (logout) await logout()
+    } catch (err) {
+      console.error('Logout error during switch account:', err)
+    }
+    const targetEmail = invitation?.email || ''
+    navigate(`/login?redirect=${encodeURIComponent(`/invite/${inviteCode}`)}&email=${encodeURIComponent(targetEmail)}`)
+  }
+
   const formatDate = (dateStr) => {
     if (!dateStr) return ''
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -107,6 +119,14 @@ export default function Invitation() {
 
   const { trip, invitation, userState } = inviteData || {}
   const organizerName = trip?.organizer?.name || invitation?.invitedBy?.name || 'A fellow camper'
+  const defaultFallback = 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=1200&q=85'
+  const campsiteImage = trip?.image || trip?.campsiteId?.images?.[0] || trip?.campsiteId?.image || defaultFallback
+  const isEmailMismatch = Boolean(
+    userState?.isLoggedIn &&
+      userState?.currentUserEmail &&
+      invitation?.email &&
+      userState.currentUserEmail.toLowerCase() !== invitation.email.toLowerCase()
+  )
 
   return (
     <main className="invite-page min-h-screen flex items-center justify-center p-4 bg-emerald-950/20">
@@ -135,7 +155,7 @@ export default function Invitation() {
         </div>
 
         <img
-          src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=85"
+          src={campsiteImage}
           alt={trip?.name || 'Camping Trip'}
           className="w-full h-44 object-cover rounded-2xl"
         />
@@ -171,7 +191,7 @@ export default function Invitation() {
         ) : !userState?.isLoggedIn ? (
           <div className="space-y-3 pt-2">
             <Link
-              to={`/register?redirect=${encodeURIComponent(`/invite/${inviteCode}`)}`}
+              to={`/register?redirect=${encodeURIComponent(`/invite/${inviteCode}`)}&email=${encodeURIComponent(invitation?.email || '')}`}
               className="block w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl transition-colors shadow-lg shadow-emerald-900/20 text-center flex items-center justify-center gap-2"
             >
               <FaUserPlus /> Create Account to Join Trip
@@ -179,12 +199,36 @@ export default function Invitation() {
             <p className="text-[11px] text-gray-500 text-center">
               Already have a Camplify account?{' '}
               <Link
-                to={`/login?redirect=${encodeURIComponent(`/invite/${inviteCode}`)}`}
+                to={`/login?redirect=${encodeURIComponent(`/invite/${inviteCode}`)}&email=${encodeURIComponent(invitation?.email || '')}`}
                 className="text-emerald-700 font-bold hover:underline"
               >
                 Sign in
               </Link>
             </p>
+          </div>
+        ) : isEmailMismatch ? (
+          <div className="space-y-3 pt-2">
+            <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl text-xs font-medium text-left leading-relaxed flex items-start gap-2">
+              <FaExclamationTriangle className="text-amber-600 shrink-0 text-sm mt-0.5" />
+              <span>
+                This invitation was sent to <strong className="font-bold text-amber-950">{invitation?.email}</strong>. You are currently signed in as <strong className="font-bold text-amber-950">{userState?.currentUserEmail}</strong>.
+              </span>
+            </div>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => handleRespond(true)}
+                disabled={actionLoading}
+                className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl transition-colors shadow-lg shadow-emerald-900/20 flex items-center justify-center gap-1.5"
+              >
+                <FaCheck /> {actionLoading ? 'Accepting…' : `Accept as ${userState?.currentUserEmail}`}
+              </button>
+              <button
+                onClick={handleSwitchAccount}
+                className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5"
+              >
+                Switch Account
+              </button>
+            </div>
           </div>
         ) : (
           <div className="invite-actions flex gap-3 pt-2">
@@ -212,3 +256,4 @@ export default function Invitation() {
     </main>
   )
 }
+

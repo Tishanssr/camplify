@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { FaArrowRight} from 'react-icons/fa'
+import { FaArrowRight } from 'react-icons/fa'
 import AuthInput from '../components/auth/AuthInput'
 import AuthLayout from '../components/auth/AuthLayout'
 import AuthMessage from '../components/auth/AuthMessage'
@@ -10,13 +10,20 @@ import logo from '../assets/camplify_ico.svg'
 export default function Login() {
   const [searchParams] = useSearchParams()
   const redirect = searchParams.get('redirect')
-  const [email, setEmail] = useState('')
+  const emailParam = searchParams.get('email')
+  const [email, setEmail] = useState(emailParam || '')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const { login } = useAuth()
+
+  useEffect(() => {
+    if (emailParam && !email) {
+      setEmail(emailParam)
+    }
+  }, [emailParam])
 
   const submit = async (event) => {
     event.preventDefault()
@@ -41,6 +48,10 @@ export default function Login() {
     }
   }
 
+  const registerLink = redirect
+    ? `/register?redirect=${encodeURIComponent(redirect)}${emailParam ? `&email=${encodeURIComponent(emailParam)}` : ''}`
+    : '/register'
+
   return (
     <AuthLayout variant="login">
       <div className="card-icon"><img src={logo} alt="Camplify" /></div>
@@ -54,7 +65,8 @@ export default function Login() {
         <button className="primary-button" disabled={loading}>{loading ? 'Signing in…' : <>Sign In <FaArrowRight /></>}</button>
       </form>
       <div className="divider"><span>or continue with</span></div>
-      <p className="switch-copy">New to Camplify? <Link to={redirect ? `/register?redirect=${encodeURIComponent(redirect)}` : '/register'}>Create account</Link></p>
+      <p className="switch-copy">New to Camplify? <Link to={registerLink}>Create account</Link></p>
     </AuthLayout>
   )
 }
+
