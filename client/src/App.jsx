@@ -27,9 +27,6 @@ const App = () => {
       <Route element={<UserOnlyRoute />}>
         <Route path="/" element={<Home />} />
         <Route path="/home" element={<Home />} />
-        <Route path="/explore" element={<Explore />} />
-        <Route path="/explore/:campsiteId" element={<CampsiteDetail />} />
-        <Route path="/pricing" element={<Pricing />} />
         <Route path="/invite/:inviteCode" element={<Invitation />} />
       </Route>
 
@@ -44,9 +41,12 @@ const App = () => {
       {/* Verification Page */}
       <Route path="/verify-email" element={<VerifyEmail />} />
 
-      {/* Protected Pages (redirects to /login if NOT logged in, redirects to /admin/campsites if admin) */}
+      {/* Protected Pages (requires logged in; redirects to /login if NOT logged in, redirects to /admin/campsites if admin) */}
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/explore" element={<Explore />} />
+        <Route path="/explore/:campsiteId" element={<CampsiteDetail />} />
+        <Route path="/pricing" element={<Pricing />} />
         <Route path="/trips" element={<Trips />} />
         <Route path="/trips/new" element={<CreateTrip />} />
         <Route path="/trips/:tripId/:tab?" element={<TripDetail />} />

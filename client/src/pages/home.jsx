@@ -441,8 +441,6 @@ export default function Home() {
             <h5 className="text-[11px] font-extrabold uppercase tracking-wider text-[#35C96B]">PRODUCT</h5>
             <ul className="space-y-2 text-xs font-medium">
               <li><a href="#features" className="hover:text-[#35C96B] transition-colors">Features</a></li>
-              <li><Link to="/explore" className="hover:text-[#35C96B] transition-colors">Explore Spots</Link></li>
-              <li><Link to="/pricing" className="hover:text-[#35C96B] transition-colors">Pricing</Link></li>
             </ul>
           </div>
 
@@ -455,14 +453,6 @@ export default function Home() {
             </ul>
           </div>
 
-          <div className="space-y-2">
-            <h5 className="text-[11px] font-extrabold uppercase tracking-wider text-[#35C96B]">LEGAL & SUPPORT</h5>
-            <ul className="space-y-2 text-xs font-medium">
-              <li><a href="#help" className="hover:text-[#35C96B] transition-colors">Help Center</a></li>
-              <li><a href="#privacy" className="hover:text-[#35C96B] transition-colors">Privacy Policy</a></li>
-              <li><a href="#terms" className="hover:text-[#35C96B] transition-colors">Terms of Service</a></li>
-            </ul>
-          </div>
         </div>
 
         <div className="max-w-7xl mx-auto pt-8 flex flex-col sm:flex-row items-center justify-between text-[11px] text-white/60 gap-4 font-medium">

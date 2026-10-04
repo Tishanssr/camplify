@@ -1,7 +1,4 @@
-/**
- * Drop-in replacement for Nodemailer transporter using Brevo HTTP API (v3).
- * Uses HTTPS (port 443) to avoid SMTP port 587 blocks on hosting platforms like Railway.
- */
+
 
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 

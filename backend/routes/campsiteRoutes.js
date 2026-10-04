@@ -60,9 +60,9 @@ const campsiteUploadFields = upload.fields([
   { name: 'offlineMapPdf', maxCount: 1 },
 ])
 
-// Public read routes
-campsiteRouter.get('/', getCampsites)
-campsiteRouter.get('/:id', getCampsiteById)
+// Protected read routes (requires authentication)
+campsiteRouter.get('/', userAuth, getCampsites)
+campsiteRouter.get('/:id', userAuth, getCampsiteById)
 
 // Admin management routes
 campsiteRouter.post('/', userAuth, adminAuth, handleUpload(campsiteUploadFields), createCampsite)
