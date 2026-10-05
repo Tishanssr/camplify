@@ -31,7 +31,7 @@ const transporter = {
 
         if (!apiKey) {
             console.error('[EMAIL_SERVICE] BREVO_API_KEY environment variable is missing!');
-            throw new Error('BREVO_API_KEY environment variable is missing.');
+            throw new Error('Error,Try again later');
         }
 
         const { from, to, subject, html, text, htmlContent, textContent } = mailOptions;
